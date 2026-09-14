@@ -78,11 +78,11 @@ impl UniswapV2Pool {
             let target_price_u128 = target_price as u128;
 
             // Using invariant x * y = k to calculate available output
-            // delta_base = reserve_base - sqrt(reserve_base * reserve_quote / target_price)
+            // target_base = reserve_base * sqrt(spot / target_price)
             if target_price_u128 > 0 {
-                let k = self.reserve_base * self.reserve_quote;
-                let target_base_squared = (k * 100_000_000) / target_price_u128;
-                let target_base = integer_sqrt(target_base_squared);
+                let ratio_sq = (spot as u128 * 1_000_000_000_000_000_000) / target_price_u128;
+                let ratio = integer_sqrt(ratio_sq);
+                let target_base = (self.reserve_base * ratio) / 1_000_000_000;
 
                 if self.reserve_base > target_base {
                     let delta_base = self.reserve_base - target_base;
@@ -90,24 +90,18 @@ impl UniswapV2Pool {
                         / (10u128.pow(self.base_decimals as u32)))
                         as u64;
 
-                    // Update ask level in book
-                    let diff = (target_price - book.base_price) / TICK_SIZE;
-                    if diff >= 0 && (diff as usize) < PRICE_LEVELS_COUNT {
-                        let idx = diff as usize;
-                        book.asks[idx].price = target_price;
-                        book.asks[idx].quantity = qty_scaled;
-                        book.asks[idx].last_update_ts = ts_ns;
-                    }
+                    book.update_ask(target_price, qty_scaled, 1, ts_ns);
                 }
             }
 
             // Generate virtual bid levels: selling base adds to reserve_base
+            // target_base = reserve_base * sqrt(spot / target_bid_price)
             let target_bid_price = spot.saturating_sub(spot * bps as i64 / 10_000);
             if target_bid_price > 0 {
                 let target_bid_price_u128 = target_bid_price as u128;
-                let k = self.reserve_base * self.reserve_quote;
-                let target_base_squared = (k * 100_000_000) / target_bid_price_u128;
-                let target_base = integer_sqrt(target_base_squared);
+                let ratio_sq = (spot as u128 * 1_000_000_000_000_000_000) / target_bid_price_u128;
+                let ratio = integer_sqrt(ratio_sq);
+                let target_base = (self.reserve_base * ratio) / 1_000_000_000;
 
                 if target_base > self.reserve_base {
                     let delta_base = target_base - self.reserve_base;

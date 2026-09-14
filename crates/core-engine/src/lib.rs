@@ -162,16 +162,23 @@ impl ContiguousOrderBook {
 
     #[inline(always)]
     pub fn update_bid(&mut self, price: i64, quantity: u64, order_count: u32, ts: u64) {
-        let diff = (price - self.base_price) / TICK_SIZE;
+        let diff = if price >= self.base_price {
+            (price - self.base_price) / TICK_SIZE
+        } else {
+            (self.base_price - price) / TICK_SIZE
+        };
         if diff >= 0 && (diff as usize) < PRICE_LEVELS_COUNT {
-            let idx = diff as usize;
+            let idx = (diff as usize).min(PRICE_LEVELS_COUNT - 1);
             self.bids[idx] = PriceLevel {
                 price,
                 quantity,
                 order_count,
                 last_update_ts: ts,
             };
-            if quantity > 0 && idx > self.best_bid_idx {
+            if quantity > 0
+                && (self.bids[self.best_bid_idx].quantity == 0
+                    || price > self.bids[self.best_bid_idx].price)
+            {
                 self.best_bid_idx = idx;
             } else if quantity == 0 && idx == self.best_bid_idx {
                 self.recalculate_best_bid();
@@ -180,17 +187,70 @@ impl ContiguousOrderBook {
     }
 
     #[inline(always)]
-    fn recalculate_best_bid(&mut self) {
-        let mut i = self.best_bid_idx;
-        while i > 0 && self.bids[i].quantity == 0 {
-            i -= 1;
+    pub fn update_ask(&mut self, price: i64, quantity: u64, order_count: u32, ts: u64) {
+        let diff = if price >= self.base_price {
+            (price - self.base_price) / TICK_SIZE
+        } else {
+            (self.base_price - price) / TICK_SIZE
+        };
+        if diff >= 0 && (diff as usize) < PRICE_LEVELS_COUNT {
+            let idx = (diff as usize).min(PRICE_LEVELS_COUNT - 1);
+            self.asks[idx] = PriceLevel {
+                price,
+                quantity,
+                order_count,
+                last_update_ts: ts,
+            };
+            if quantity > 0
+                && (self.asks[self.best_ask_idx].quantity == 0
+                    || price < self.asks[self.best_ask_idx].price)
+            {
+                self.best_ask_idx = idx;
+            } else if quantity == 0 && idx == self.best_ask_idx {
+                self.recalculate_best_ask();
+            }
         }
-        self.best_bid_idx = i;
+    }
+
+    #[inline(always)]
+    fn recalculate_best_bid(&mut self) {
+        let mut best_idx = 0;
+        let mut best_price = 0;
+        for (i, level) in self.bids.iter().enumerate() {
+            if level.quantity > 0 && level.price > best_price {
+                best_price = level.price;
+                best_idx = i;
+            }
+        }
+        self.best_bid_idx = best_idx;
+    }
+
+    #[inline(always)]
+    fn recalculate_best_ask(&mut self) {
+        let mut best_idx = 0;
+        let mut best_price = i64::MAX;
+        for (i, level) in self.asks.iter().enumerate() {
+            if level.quantity > 0 && level.price < best_price {
+                best_price = level.price;
+                best_idx = i;
+            }
+        }
+        self.best_ask_idx = best_idx;
     }
 
     #[inline(always)]
     pub fn bbo_bid(&self) -> Option<&PriceLevel> {
         let level = &self.bids[self.best_bid_idx];
+        if level.quantity > 0 {
+            Some(level)
+        } else {
+            None
+        }
+    }
+
+    #[inline(always)]
+    pub fn bbo_ask(&self) -> Option<&PriceLevel> {
+        let level = &self.asks[self.best_ask_idx];
         if level.quantity > 0 {
             Some(level)
         } else {
