@@ -1,8 +1,8 @@
 use distribution::{
     decode_bbo_sbe, decode_trade_sbe, decode_ws_frame_header, encode_bbo_sbe, encode_trade_sbe,
-    encode_ws_frame, serialize_bbo_json, serialize_trade_json, ClientFilterPredicate,
+    serialize_bbo_json, serialize_trade_json, ClientFilterPredicate,
     ClientSession, InvertedTopicRouter, TopicKey, WebSocketServerEngine, WireProtocol, WsOpcode,
-    STREAM_TYPE_BBO, STREAM_TYPE_TRADE, TOTAL_SBE_BBO_LEN, TOTAL_SBE_TRADE_LEN,
+    STREAM_TYPE_BBO, TOTAL_SBE_BBO_LEN, TOTAL_SBE_TRADE_LEN,
 };
 use ingest_models::{NormalizedBbo, TelemetryTimestamps, UnifiedTrade};
 

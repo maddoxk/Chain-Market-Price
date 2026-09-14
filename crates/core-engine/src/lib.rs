@@ -6,6 +6,13 @@
 //! - Ultra-fast zero-allocation fixed-point scaler.
 //! - Vectorized WebSocket unmasking routine.
 
+pub mod simulator;
+
+pub use simulator::{
+    FastPrng, FeedBurstConfig, FeedEventKind, IsolatedConsumerQueue, MockExchangeFeedSimulator,
+    PushResult, QueueMetrics, SaturationDropPolicy, SimulatedFeedEvent, SimulatedVenue,
+};
+
 use std::cell::UnsafeCell;
 use std::sync::atomic::{AtomicU64, Ordering};
 

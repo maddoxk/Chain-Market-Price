@@ -1,4 +1,10 @@
-use std::hint::black_box;
+#[inline(never)]
+fn black_box<T>(dummy: T) -> T {
+    let ret = unsafe { std::ptr::read_volatile(&dummy) };
+    std::mem::forget(dummy);
+    ret
+}
+
 use std::time::Instant;
 
 use distribution::{
@@ -179,11 +185,12 @@ fn main() {
         const ROUTE_ITERS: usize = 100_000;
         let start = Instant::now();
         for _ in 0..ROUTE_ITERS {
-            black_box(router.dispatch_bbo(
-                black_box(&bbo),
-                black_box(0),
-                black_box(|_id, _proto, _payload| {}),
-            ));
+            let metrics = router.dispatch_bbo(
+                &bbo,
+                0,
+                |_id, _proto, _payload| {},
+            );
+            black_box(metrics);
         }
         let elapsed = start.elapsed();
         let nanos_per_dispatch = elapsed.as_nanos() as f64 / ROUTE_ITERS as f64;
