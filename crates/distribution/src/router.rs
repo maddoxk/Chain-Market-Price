@@ -110,11 +110,8 @@ impl InvertedTopicRouter {
     pub fn update_filter(&self, client_id: u32, filter: ClientFilterPredicate) -> Result<(), RouterError> {
         let clients = self.clients.read().map_err(|_| RouterError::LockPoisoned)?;
         let session = clients.get(&client_id).ok_or(RouterError::ClientNotFound(client_id))?;
-        unsafe {
-            // Safe since session.filter is owned by session arc and updated atomically/under read lock
-            let filter_ptr = &session.filter as *const ClientFilterPredicate as *mut ClientFilterPredicate;
-            *filter_ptr = filter;
-        }
+        let mut session_filter = session.filter.write().map_err(|_| RouterError::LockPoisoned)?;
+        *session_filter = filter;
         Ok(())
     }
 
@@ -182,9 +179,11 @@ impl InvertedTopicRouter {
                 }
 
                 // Evaluate dynamic predicate: max spread bps filter
-                if session.filter.max_spread_bps > 0 && (bbo.spread_bps as u32) > session.filter.max_spread_bps {
-                    metrics.filtered_clients += 1;
-                    return;
+                if let Ok(filter) = session.filter.read() {
+                    if filter.max_spread_bps > 0 && (bbo.spread_bps as u32) > filter.max_spread_bps {
+                        metrics.filtered_clients += 1;
+                        return;
+                    }
                 }
 
                 // Evaluate rate limiter
@@ -277,9 +276,11 @@ impl InvertedTopicRouter {
                 }
 
                 // Dynamic filter predicate: min notional USD threshold
-                if !session.filter.matches_trade(notional_usd) {
-                    metrics.filtered_clients += 1;
-                    return;
+                if let Ok(filter) = session.filter.read() {
+                    if !filter.matches_trade(notional_usd) {
+                        metrics.filtered_clients += 1;
+                        return;
+                    }
                 }
 
                 // Evaluate rate limiter

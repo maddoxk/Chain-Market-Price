@@ -127,18 +127,30 @@ impl LockFreeTokenBucket {
             let mut available_tokens = (curr & 0x00FF_FFFF) as u32;
 
             // Compute elapsed time and refill tokens
-            if now_ms > last_refill_ms {
+            let next_ts = if now_ms > last_refill_ms {
                 let elapsed_ms = now_ms - last_refill_ms;
                 let refilled = (elapsed_ms * self.refill_rate_per_sec as u64 / 1000) as u32;
-                available_tokens = (available_tokens + refilled).min(self.burst_capacity);
-            }
+                if refilled > 0 {
+                    available_tokens = (available_tokens + refilled).min(self.burst_capacity);
+                    if available_tokens >= self.burst_capacity {
+                        now_ms
+                    } else {
+                        let refilled_ms = (refilled as u64 * 1000) / self.refill_rate_per_sec as u64;
+                        (last_refill_ms + refilled_ms).min(now_ms)
+                    }
+                } else {
+                    last_refill_ms
+                }
+            } else {
+                last_refill_ms
+            };
 
             if available_tokens < tokens {
                 return false; // Rate limit exceeded
             }
 
             let new_tokens = available_tokens - tokens;
-            let next = (now_ms << 24) | (new_tokens as u64 & 0x00FF_FFFF);
+            let next = (next_ts << 24) | (new_tokens as u64 & 0x00FF_FFFF);
 
             match self.state.compare_exchange_weak(
                 curr,

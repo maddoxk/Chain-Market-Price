@@ -60,7 +60,11 @@ impl<'a> FastJsonWriter<'a> {
 
     #[inline(always)]
     pub fn write_str(&mut self, s: &str) -> Result<(), JsonError> {
-        let bytes = s.as_bytes();
+        self.write_bytes(s.as_bytes())
+    }
+
+    #[inline(always)]
+    pub fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), JsonError> {
         let needed = self.pos + bytes.len();
         if needed > self.buf.len() {
             return Err(JsonError::BufferTooSmall {
@@ -102,7 +106,7 @@ impl<'a> FastJsonWriter<'a> {
         }
 
         let slice = &temp[idx..20];
-        self.write_str(unsafe { std::str::from_utf8_unchecked(slice) })
+        self.write_bytes(slice)
     }
 
     /// Fast signed 64-bit integer printing
@@ -145,7 +149,7 @@ impl<'a> FastJsonWriter<'a> {
             frac_buf[idx] = b'0' + (frac as u8);
         }
 
-        self.write_str(unsafe { std::str::from_utf8_unchecked(&frac_buf) })
+        self.write_bytes(&frac_buf)
     }
 }
 

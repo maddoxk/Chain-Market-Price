@@ -4,6 +4,7 @@
 //! dynamic filter predicate configuration, lock-free rate limiting, and ping/pong heartbeat tracking.
 
 use std::sync::atomic::{AtomicU64, AtomicU8, Ordering};
+use std::sync::RwLock;
 use crate::{ClientFilterPredicate, LockFreeTokenBucket};
 
 /// Client negotiated wire protocol encoding
@@ -44,7 +45,7 @@ pub struct ClientSession {
     pub protocol: WireProtocol,
     state: AtomicU8,
     pub rate_limiter: LockFreeTokenBucket,
-    pub filter: ClientFilterPredicate,
+    pub filter: RwLock<ClientFilterPredicate>,
     pub last_ping_ts_ns: AtomicU64,
     pub last_pong_ts_ns: AtomicU64,
     pub messages_sent: AtomicU64,
@@ -65,7 +66,7 @@ impl ClientSession {
             protocol,
             state: AtomicU8::new(SessionState::Connected as u8),
             rate_limiter: LockFreeTokenBucket::new(rate_per_sec, burst_capacity, now_ms),
-            filter: ClientFilterPredicate::default(),
+            filter: RwLock::new(ClientFilterPredicate::default()),
             last_ping_ts_ns: AtomicU64::new(0),
             last_pong_ts_ns: AtomicU64::new(0),
             messages_sent: AtomicU64::new(0),
@@ -75,7 +76,7 @@ impl ClientSession {
     }
 
     pub fn with_filter(mut self, filter: ClientFilterPredicate) -> Self {
-        self.filter = filter;
+        self.filter = RwLock::new(filter);
         self
     }
 
