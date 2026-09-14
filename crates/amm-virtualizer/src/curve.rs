@@ -18,6 +18,133 @@ use core_engine::{ContiguousOrderBook, PRICE_LEVELS_COUNT, TICK_SIZE};
 /// Maximum supported coins in a single Curve pool
 pub const MAX_COINS: usize = 3;
 
+/// Fixed-size stack-allocated 256-bit unsigned integer
+/// Enables zero-heap intermediate calculations for Stableswap invariants without overflow.
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct U256 {
+    pub hi: u128,
+    pub lo: u128,
+}
+
+impl U256 {
+    pub const ZERO: Self = Self { hi: 0, lo: 0 };
+    pub const ONE: Self = Self { hi: 0, lo: 1 };
+
+    #[inline(always)]
+    pub const fn from_u128(v: u128) -> Self {
+        Self { hi: 0, lo: v }
+    }
+
+    #[inline(always)]
+    pub const fn as_u128(&self) -> u128 {
+        self.lo
+    }
+
+    #[inline(always)]
+    pub fn is_zero(&self) -> bool {
+        self.hi == 0 && self.lo == 0
+    }
+
+    #[inline(always)]
+    pub fn add(&self, other: Self) -> Self {
+        let (lo, carry) = self.lo.overflowing_add(other.lo);
+        let hi = self
+            .hi
+            .wrapping_add(other.hi)
+            .wrapping_add(if carry { 1 } else { 0 });
+        Self { hi, lo }
+    }
+
+    #[inline(always)]
+    pub fn sub(&self, other: Self) -> Self {
+        let (lo, borrow) = self.lo.overflowing_sub(other.lo);
+        let hi = self
+            .hi
+            .wrapping_sub(other.hi)
+            .wrapping_sub(if borrow { 1 } else { 0 });
+        Self { hi, lo }
+    }
+
+    pub fn mul_u128(&self, other: u128) -> Self {
+        let lo_lo = (self.lo as u64) as u128;
+        let lo_hi = (self.lo >> 64) as u128;
+        let o_lo = (other as u64) as u128;
+        let o_hi = (other >> 64) as u128;
+
+        let p0 = lo_lo * o_lo;
+        let p1 = lo_lo * o_hi;
+        let p2 = lo_hi * o_lo;
+        let p3 = lo_hi * o_hi;
+
+        let (mid, c1) = p1.overflowing_add(p2);
+        let mid_lo = (mid as u64) as u128;
+        let mid_hi = (mid >> 64) + if c1 { 1 << 64 } else { 0 };
+
+        let (lo, c2) = p0.overflowing_add(mid_lo << 64);
+        let hi = p3 + mid_hi + self.hi.wrapping_mul(other) + if c2 { 1 } else { 0 };
+        Self { hi, lo }
+    }
+
+    #[inline(always)]
+    pub fn mul(&self, other: Self) -> Self {
+        let mut res = self.mul_u128(other.lo);
+        res.hi = res.hi.wrapping_add(self.lo.wrapping_mul(other.hi));
+        res
+    }
+
+    pub fn div(&self, other: Self) -> Self {
+        if other.is_zero() {
+            panic!("division by zero in U256");
+        }
+        if *self < other {
+            return Self::ZERO;
+        }
+        if other == Self::ONE {
+            return *self;
+        }
+
+        let mut quotient = Self::ZERO;
+        let mut remainder = Self::ZERO;
+
+        for i in (0..256).rev() {
+            remainder = remainder.shift_left_1();
+            if self.get_bit(i) {
+                remainder.lo |= 1;
+            }
+            if remainder >= other {
+                remainder = remainder.sub(other);
+                quotient.set_bit(i);
+            }
+        }
+        quotient
+    }
+
+    #[inline(always)]
+    fn shift_left_1(&self) -> Self {
+        let hi = (self.hi << 1) | (self.lo >> 127);
+        let lo = self.lo << 1;
+        Self { hi, lo }
+    }
+
+    #[inline(always)]
+    fn get_bit(&self, bit: usize) -> bool {
+        if bit < 128 {
+            (self.lo >> bit) & 1 == 1
+        } else {
+            (self.hi >> (bit - 128)) & 1 == 1
+        }
+    }
+
+    #[inline(always)]
+    fn set_bit(&mut self, bit: usize) {
+        if bit < 128 {
+            self.lo |= 1u128 << bit;
+        } else {
+            self.hi |= 1u128 << (bit - 128);
+        }
+    }
+}
+
 /// Curve Stableswap Pool Supporting 2-Token and 3-Token Pools
 #[derive(Clone, Debug)]
 pub struct CurvePool {
@@ -82,6 +209,7 @@ impl CurvePool {
     }
 
     /// Solves for invariant $D$ using pure integer Newton-Raphson approximation.
+    /// Uses 256-bit arithmetic for intermediate products to eliminate u128 overflow.
     /// Converges strictly within $\le 4$ iterations for balanced or moderately unbalanced pools.
     pub fn get_d(&self, xp: &[u128]) -> Option<u128> {
         let n = self.n_coins as u128;
@@ -95,42 +223,55 @@ impl CurvePool {
 
         let n_pow_n = if self.n_coins == 2 { 4 } else { 27 };
         let ann = self.a * n_pow_n;
-        let mut d = s;
+        let mut d = U256::from_u128(s);
+        let s_u = U256::from_u128(s);
+        let ann_u = U256::from_u128(ann);
+        let n_u = U256::from_u128(n);
 
         for _ in 0..255 {
             let mut d_p = d;
             for i in 0..self.n_coins {
                 // d_p = d_p * d / (x[i] * n)
-                d_p = (d_p * d) / (xp[i] * n);
+                let denom = U256::from_u128(xp[i]).mul(n_u);
+                if denom.is_zero() {
+                    return None;
+                }
+                d_p = d_p.mul(d).div(denom);
             }
 
             let d_prev = d;
-            let numerator = (ann * s + d_p * n) * d;
-            let denominator = (ann - 1) * d + (n + 1) * d_p;
-            d = numerator / denominator;
+            let numerator = ann_u.mul(s_u).add(d_p.mul(n_u)).mul(d);
+            let denominator = ann_u.sub(U256::ONE).mul(d).add(n_u.add(U256::ONE).mul(d_p));
+            if denominator.is_zero() {
+                return None;
+            }
+            d = numerator.div(denominator);
 
             if d > d_prev {
-                if d - d_prev <= 1 {
-                    return Some(d);
+                if d.sub(d_prev) <= U256::ONE {
+                    return Some(d.as_u128());
                 }
-            } else if d_prev - d <= 1 {
-                return Some(d);
+            } else if d_prev.sub(d) <= U256::ONE {
+                return Some(d.as_u128());
             }
         }
-        Some(d)
+        Some(d.as_u128())
     }
 
     /// Solves for output reserve $y$ of token $j$ when token $i$'s normalized balance becomes $x$.
-    /// Uses pure integer Newton-Raphson root finding.
+    /// Uses pure integer Newton-Raphson root finding with 256-bit precision.
     pub fn get_y(&self, i: usize, j: usize, x: u128, xp: &[u128]) -> Option<u128> {
         if i == j || i >= self.n_coins || j >= self.n_coins {
             return None;
         }
 
-        let d = self.get_d(xp)?;
+        let d_val = self.get_d(xp)?;
+        let d = U256::from_u128(d_val);
         let n = self.n_coins as u128;
         let n_pow_n = if self.n_coins == 2 { 4 } else { 27 };
         let ann = self.a * n_pow_n;
+        let ann_u = U256::from_u128(ann);
+        let n_u = U256::from_u128(n);
 
         let mut c = d;
         let mut s = 0u128;
@@ -145,26 +286,40 @@ impl CurvePool {
             };
 
             s += x_val;
-            c = (c * d) / (x_val * n);
+            let denom = U256::from_u128(x_val).mul(n_u);
+            if denom.is_zero() {
+                return None;
+            }
+            c = c.mul(d).div(denom);
         }
 
-        c = (c * d) / (ann * n);
-        let b = s + d / ann;
+        let ann_n = ann_u.mul(n_u);
+        if ann_n.is_zero() {
+            return None;
+        }
+        c = c.mul(d).div(ann_n);
+        let b = U256::from_u128(s).add(d.div(ann_u));
         let mut y = d;
 
         for _ in 0..255 {
             let y_prev = y;
-            y = (y * y + c) / (2 * y + b - d);
+            let numerator = y.mul(y).add(c);
+            let denom_sum = U256::from_u128(2).mul(y).add(b);
+            if denom_sum <= d {
+                return None;
+            }
+            let denominator = denom_sum.sub(d);
+            y = numerator.div(denominator);
 
             if y > y_prev {
-                if y - y_prev <= 1 {
-                    return Some(y);
+                if y.sub(y_prev) <= U256::ONE {
+                    return Some(y.as_u128());
                 }
-            } else if y_prev - y <= 1 {
-                return Some(y);
+            } else if y_prev.sub(y) <= U256::ONE {
+                return Some(y.as_u128());
             }
         }
-        Some(y)
+        Some(y.as_u128())
     }
 
     /// Calculates net output received when swapping `dx` (raw units) of token $i$ for token $j$.

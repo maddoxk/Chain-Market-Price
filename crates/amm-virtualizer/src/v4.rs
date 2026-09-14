@@ -136,9 +136,9 @@ impl UniswapV4Pool {
         if self.sqrt_price_x96 == 0 {
             return 0;
         }
-        let sp = self.sqrt_price_x96 >> 32;
+        let sp = self.sqrt_price_x96 >> 48;
         let p_num = sp * sp;
-        let p_scaled = ((p_num >> 64) * 100_000_000) >> 64;
+        let p_scaled = (((p_num >> 32) * 100_000_000) + (1 << 63)) >> 64;
         p_scaled as i64
     }
 

@@ -47,8 +47,15 @@ impl UniswapV2Pool {
         if self.reserve_base == 0 {
             return 0;
         }
-        // Price = (reserve_quote / reserve_base) scaled by 1e8
-        let price = (self.reserve_quote * 100_000_000) / self.reserve_base;
+        // Normalize base and quote decimal places:
+        // Price = (reserve_quote / 10^quote_decimals) / (reserve_base / 10^base_decimals) * 10^8
+        let price = if self.base_decimals >= self.quote_decimals {
+            let diff = 10u128.pow((self.base_decimals - self.quote_decimals) as u32);
+            (self.reserve_quote * diff * 100_000_000) / self.reserve_base
+        } else {
+            let diff = 10u128.pow((self.quote_decimals - self.base_decimals) as u32);
+            (self.reserve_quote * 100_000_000) / (self.reserve_base * diff)
+        };
         price as i64
     }
 
@@ -146,15 +153,15 @@ impl ConcentratedLiquidityPool {
         }
     }
 
-    /// Converts sqrtPriceX96 to 10^8 scaled integer price
+    /// Converts sqrtPriceX96 to 10^8 scaled integer spot price
     /// Price = (sqrtPriceX96 / 2^96)^2 * 1e8
     pub fn spot_price_scaled(&self) -> i64 {
         if self.sqrt_price_x96 == 0 {
             return 0;
         }
-        let sp = self.sqrt_price_x96 >> 32;
+        let sp = self.sqrt_price_x96 >> 48;
         let p_num = sp * sp;
-        let p_scaled = ((p_num >> 64) * 100_000_000) >> 64;
+        let p_scaled = (((p_num >> 32) * 100_000_000) + (1 << 63)) >> 64;
         p_scaled as i64
     }
 
