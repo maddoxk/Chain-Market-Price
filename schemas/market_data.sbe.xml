@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbe:messageSchema xmlns:sbe="http://fixprotocol.io/2014/sbe"
+                   package="com.chainmarketprice.engine.sbe"
+                   id="1"
+                   version="1"
+                   semanticVersion="1.0"
+                   description="Ultra-Low-Latency CeFi/DeFi Unified Market Data SBE Schema"
+                   byteOrder="littleEndian">
+
+    <!-- Basic Types and Enums -->
+    <types>
+        <type name="u8" primitiveType="uint8"/>
+        <type name="u16" primitiveType="uint16"/>
+        <type name="u32" primitiveType="uint32"/>
+        <type name="u64" primitiveType="uint64"/>
+        <type name="i64" primitiveType="int64"/>
+        
+        <!-- Scaled Fixed-Point Price (8 decimal places: value / 1e8) -->
+        <type name="PriceScaled" primitiveType="int64" description="Scaled integer 10^8"/>
+        <!-- Scaled Fixed-Point Qty (8 decimal places: value / 1e8) -->
+        <type name="QtyScaled" primitiveType="uint64" description="Scaled integer 10^8"/>
+        <!-- Nanosecond timestamp (Unix epoch nanoseconds) -->
+        <type name="TimestampNanos" primitiveType="uint64" description="Nanoseconds since Unix epoch"/>
+
+        <!-- Market Venue Identifier -->
+        <enum name="VenueId" encodingType="uint16">
+            <validValue name="BINANCE">1</validValue>
+            <validValue name="COINBASE">2</validValue>
+            <validValue name="BYBIT">3</validValue>
+            <validValue name="OKX">4</validValue>
+            <validValue name="DERIBIT">5</validValue>
+            <validValue name="UNISWAP_V2">101</validValue>
+            <validValue name="UNISWAP_V3">102</validValue>
+            <validValue name="UNISWAP_V4">104</validValue>
+            <validValue name="CURVE">103</validValue>
+            <validValue name="RAYDIUM">201</validValue>
+            <validValue name="ORCA">202</validValue>
+            <validValue name="CUSTOM">999</validValue>
+        </enum>
+
+        <!-- Chain Identifier -->
+        <enum name="ChainId" encodingType="uint16">
+            <validValue name="OFF_CHAIN">0</validValue>
+            <validValue name="ETHEREUM">1</validValue>
+            <validValue name="ARBITRUM">42161</validValue>
+            <validValue name="OPTIMISM">10</validValue>
+            <validValue name="BASE">8453</validValue>
+            <validValue name="SOLANA">501</validValue>
+            <validValue name="MONAD">10143</validValue>
+            <validValue name="BSC">56</validValue>
+        </enum>
+
+        <!-- Market Side -->
+        <enum name="Side" encodingType="uint8">
+            <validValue name="BUY">1</validValue>
+            <validValue name="SELL">2</validValue>
+            <validValue name="TWO_SIDED">3</validValue>
+            <validValue name="UNKNOWN">0</validValue>
+        </enum>
+
+        <!-- Order Action for L3 MBO & Mempool Intent -->
+        <enum name="OrderAction" encodingType="uint8">
+            <validValue name="ADD">1</validValue>
+            <validValue name="MODIFY">2</validValue>
+            <validValue name="CANCEL">3</validValue>
+            <validValue name="EXECUTE">4</validValue>
+            <validValue name="PENDING_SWAP">10</validValue>
+            <validValue name="REPLACED_SWAP">11</validValue>
+            <validValue name="DROPPED_SWAP">12</validValue>
+        </enum>
+
+        <!-- Composite: 4-Point Telemetry Timestamps (32 bytes) -->
+        <composite name="TelemetryTimestamps" description="4-point nanosecond precision telemetry">
+            <type name="t0_exchange_ns" primitiveType="uint64" description="Venue matching engine / chain block/mempool timestamp"/>
+            <type name="t1_ingest_nic_ns" primitiveType="uint64" description="Ingest NIC HW timestamp (IEEE 1588 PTP)"/>
+            <type name="t2_engine_proc_ns" primitiveType="uint64" description="Engine normalization finished timestamp"/>
+            <type name="t3_egress_ns" primitiveType="uint64" description="Outbound dispatch timestamp onto wire"/>
+        </composite>
+
+        <!-- Composite: Standard Message Header -->
+        <composite name="MessageHeader" description="SBE Standard Framing Header">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+    </types>
+
+    <!-- Message 101: L1 Top of Book (BBO) -->
+    <sbe:message name="BBOReport" id="101" description="L1 Best Bid and Offer with unified CeFi/DeFi pricing">
+        <field name="telemetry" type="TelemetryTimestamps"/>
+        <field name="venue" type="VenueId"/>
+        <field name="chain" type="ChainId"/>
+        <field name="marketId" type="u32" description="Internal global registry token/pair ID"/>
+        <field name="sequence" type="u64" description="Monotonic sequence number per market"/>
+        <field name="bidPrice" type="PriceScaled"/>
+        <field name="bidQty" type="QtyScaled"/>
+        <field name="askPrice" type="PriceScaled"/>
+        <field name="askQty" type="QtyScaled"/>
+        <field name="spreadBps" type="u16" description="Bid-Ask spread in basis points"/>
+        <field name="flags" type="u16" description="Bitmask: 0x01=AMM Synthetic, 0x02=Crossed Book, 0x04=Stale, 0x08=Mempool Shift"/>
+    </sbe:message>
+
+    <!-- Message 102: L2 Aggregated Market Depth Snapshot/Delta -->
+    <sbe:message name="MarketDepthReport" id="102" description="L2 Aggregated Depth with discrete price bands">
+        <field name="telemetry" type="TelemetryTimestamps"/>
+        <field name="venue" type="VenueId"/>
+        <field name="chain" type="ChainId"/>
+        <field name="marketId" type="u32"/>
+        <field name="sequence" type="u64"/>
+        <field name="isSnapshot" type="u8" description="1 = Snapshot, 0 = Incremental Delta"/>
+        <field name="numBids" type="u8"/>
+        <field name="numAsks" type="u8"/>
+        <field name="reserved" type="u8"/>
+        
+        <group name="bids" id="1" dimensionType="groupSizeEncoding" description="Configurable depth bids">
+            <field name="price" type="PriceScaled"/>
+            <field name="quantity" type="QtyScaled"/>
+            <field name="orderCount" type="u32"/>
+            <field name="impliedLiquidity" type="u32" description="DeFi CLMM active liquidity factor or CeFi depth"/>
+        </group>
+        <group name="asks" id="2" dimensionType="groupSizeEncoding" description="Configurable depth asks">
+            <field name="price" type="PriceScaled"/>
+            <field name="quantity" type="QtyScaled"/>
+            <field name="orderCount" type="u32"/>
+            <field name="impliedLiquidity" type="u32"/>
+        </group>
+    </sbe:message>
+
+    <!-- Message 103: L3 Market By Order (MBO) / DeFi Mempool Swaps -->
+    <sbe:message name="OrderEventReport" id="103" description="L3 Individual order lifecycle &amp; pending mempool swaps">
+        <field name="telemetry" type="TelemetryTimestamps"/>
+        <field name="venue" type="VenueId"/>
+        <field name="chain" type="ChainId"/>
+        <field name="marketId" type="u32"/>
+        <field name="sequence" type="u64"/>
+        <field name="orderId" type="u64" description="CeFi OrderId or DeFi TxHash low 64 bits"/>
+        <field name="orderAction" type="OrderAction"/>
+        <field name="side" type="Side"/>
+        <field name="price" type="PriceScaled"/>
+        <field name="size" type="QtyScaled"/>
+        <field name="executedSize" type="QtyScaled"/>
+        <field name="remainingSize" type="QtyScaled"/>
+        
+        <!-- DeFi Specific Execution Parameters -->
+        <field name="priorityFeeGwei" type="u32" description="EIP-1559 maxPriorityFeePerGas or Solana tip"/>
+        <field name="maxSlippageBps" type="u16" description="Slippage tolerance in bps"/>
+        <field name="pendingStateFlags" type="u16" description="0x01=Private RPC/Flashbots, 0x02=Frontrun Risk, 0x04=Sandwich Target"/>
+        <data name="defiExtData" type="varDataEncoding" description="Optional: 32-byte txHash + 20-byte poolAddress if DeFi"/>
+    </sbe:message>
+
+    <!-- Message 104: Unified Execution / Trade Match -->
+    <sbe:message name="TradeExecutionReport" id="104" description="Unified CeFi Match &amp; DeFi AMM Swap Event">
+        <field name="telemetry" type="TelemetryTimestamps"/>
+        <field name="venue" type="VenueId"/>
+        <field name="chain" type="ChainId"/>
+        <field name="marketId" type="u32"/>
+        <field name="sequence" type="u64"/>
+        <field name="tradeId" type="u64"/>
+        <field name="side" type="Side" description="Taker side"/>
+        <field name="price" type="PriceScaled"/>
+        <field name="baseQty" type="QtyScaled"/>
+        <field name="quoteQty" type="QtyScaled"/>
+        <field name="feeBps" type="u16" description="Trading fee in bps"/>
+        <field name="isLiquidation" type="u8"/>
+        <field name="executionVenueType" type="u8" description="1=CLOB, 2=AMM_V2, 3=AMM_V3_CLMM, 4=RFQ"/>
+        <data name="protocolContext" type="varDataEncoding" description="TxHash (DeFi) or MatchEngineId (CeFi)"/>
+    </sbe:message>
+</sbe:messageSchema>

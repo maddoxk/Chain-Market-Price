@@ -1,0 +1,8 @@
+[package]
+name = "distribution"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+core-engine = { path = "../core-engine" }
+ingest-models = { path = "../ingest-models" }
