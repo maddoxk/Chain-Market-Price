@@ -21,6 +21,9 @@ dependencies = [
 [[package]]
 name = "core-engine"
 version = "0.1.0"
+dependencies = [
+ "ingest-models",
+]
 
 [[package]]
 name = "distribution"
