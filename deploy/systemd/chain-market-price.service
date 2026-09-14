@@ -1,0 +1,60 @@
+[Unit]
+Description=Chain-Market-Price Ultra-Low Latency HFT Market Data Feed Engine
+Documentation=https://github.com/maddoxk/Chain-Market-Price
+After=network-online.target sys-subsystem-net-devices-eth0.device
+Wants=network-online.target
+DefaultDependencies=no
+
+[Service]
+Type=simple
+User=hft
+Group=hft
+WorkingDirectory=/opt/chain-market-price
+ExecStart=/opt/chain-market-price/scripts/launch_pinned.sh
+
+# Real-Time Scheduling & Resource Invariants
+LimitMEMLOCK=infinity
+LimitNOFILE=1048576
+LimitNPROC=524288
+Nice=-20
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=99
+CPUAffinity=1-8
+UMask=0027
+
+# Process Isolation & Security Sandboxing
+ProtectSystem=full
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectControlGroups=true
+PrivateTmp=true
+NoNewPrivileges=true
+CapabilityBoundingSet=CAP_SYS_NICE CAP_IPC_LOCK CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_RAWIO
+AmbientCapabilities=CAP_SYS_NICE CAP_IPC_LOCK CAP_NET_RAW CAP_NET_ADMIN
+
+# Shared Memory & IPC
+ReadOnlyPaths=-/proc
+ReadWritePaths=/dev/shm /var/log/chain-market-price
+
+# Watchdog & Restart Lifecycle
+Restart=always
+RestartSec=2s
+TimeoutStopSec=10s
+WatchdogSec=5s
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Environment Configuration
+Environment=RUST_BACKTRACE=1
+Environment=CMP_LOG_LEVEL=info
+Environment=CMP_SHM_PATH=/dev/shm/cmp_market_data.shm
+Environment=CMP_HTTP_PORT=9001
+Environment=CMP_SLOT_CAPACITY=16384
+
+# Output Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=chain-market-price
+
+[Install]
+WantedBy=multi-user.target
