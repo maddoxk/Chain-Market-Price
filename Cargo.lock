@@ -29,6 +29,7 @@ dependencies = [
 name = "distribution"
 version = "0.1.0"
 dependencies = [
+ "cefi-ingest",
  "core-engine",
  "ingest-models",
 ]
