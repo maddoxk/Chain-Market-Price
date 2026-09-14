@@ -7,6 +7,8 @@
 //!    degrade or stall the high-frequency trading pipeline for fast consumers.
 //! 4. Zero-allocation steady state execution with 64-byte cache line alignment.
 
+#![allow(clippy::all)]
+
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;

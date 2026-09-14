@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+
 #[inline(never)]
 fn black_box<T>(dummy: T) -> T {
     let ret = unsafe { std::ptr::read_volatile(&dummy) };

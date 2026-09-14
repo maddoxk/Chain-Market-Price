@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+
 use distribution::{
     decode_bbo_sbe, decode_trade_sbe, decode_ws_frame_header, encode_bbo_sbe, encode_trade_sbe,
     serialize_bbo_json, serialize_trade_json, ClientFilterPredicate,
