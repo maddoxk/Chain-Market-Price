@@ -13,9 +13,9 @@
 //! - Zero runtime heap allocation during packet ingress and polling loops.
 //! - 64-byte cache line alignment for packet descriptors and driver state.
 
+use crate::CachePadded;
 use std::cell::UnsafeCell;
 use std::sync::atomic::{AtomicU64, Ordering};
-use crate::CachePadded;
 
 /// Maximum standard MTU Ethernet frame size supported in DMA buffers
 pub const MAX_FRAME_SIZE: usize = 2048;
@@ -224,7 +224,10 @@ pub struct KernelBypassBridge<const N: usize> {
 
 impl<const N: usize> KernelBypassBridge<N> {
     pub fn new(config: BypassConfig) -> Self {
-        assert!(N.is_power_of_two(), "Buffer pool size must be a power of two");
+        assert!(
+            N.is_power_of_two(),
+            "Buffer pool size must be a power of two"
+        );
         let mut bridge = Self {
             config,
             metrics: BypassMetrics::default(),
@@ -261,7 +264,9 @@ impl<const N: usize> KernelBypassBridge<N> {
 
         self.rx_ring_tail.0 = tail;
         if refilled > 0 {
-            self.metrics.ring_refills.fetch_add(refilled as u64, Ordering::Relaxed);
+            self.metrics
+                .ring_refills
+                .fetch_add(refilled as u64, Ordering::Relaxed);
         }
         refilled
     }
@@ -321,8 +326,12 @@ impl<const N: usize> KernelBypassBridge<N> {
             let payload_slice = self.buffer_pool.get_buffer_slice(buf_id, len);
             packet_handler(payload_slice, hw_ts);
 
-            self.metrics.packets_received.fetch_add(1, Ordering::Relaxed);
-            self.metrics.bytes_received.fetch_add(len as u64, Ordering::Relaxed);
+            self.metrics
+                .packets_received
+                .fetch_add(1, Ordering::Relaxed);
+            self.metrics
+                .bytes_received
+                .fetch_add(len as u64, Ordering::Relaxed);
 
             // Return buffer back to pool
             self.buffer_pool.release_descriptor(buf_id);
@@ -375,9 +384,15 @@ mod tests {
         let test_payload_2 = b"BBO_OKX_ETH_USDT_3500";
         let test_payload_3 = b"TRADE_UNISWAP_V3_SOL_USDC_150";
 
-        assert!(bridge.inject_packet(test_payload_1, 1_700_000_000_000_000_100).is_ok());
-        assert!(bridge.inject_packet(test_payload_2, 1_700_000_000_000_000_200).is_ok());
-        assert!(bridge.inject_packet(test_payload_3, 1_700_000_000_000_000_300).is_ok());
+        assert!(bridge
+            .inject_packet(test_payload_1, 1_700_000_000_000_000_100)
+            .is_ok());
+        assert!(bridge
+            .inject_packet(test_payload_2, 1_700_000_000_000_000_200)
+            .is_ok());
+        assert!(bridge
+            .inject_packet(test_payload_3, 1_700_000_000_000_000_300)
+            .is_ok());
 
         let mut received = Vec::new();
         let polled = bridge.poll_rx_burst(10, |payload, hw_ts| {

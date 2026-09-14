@@ -53,7 +53,8 @@ impl SpeculativeStateSimulator {
             // Trader inputs quote (e.g. USDC), receives base (e.g. WETH)
             let amount_in_with_fee = tx.amount_in * pool.fee_numerator;
             let numerator = amount_in_with_fee * simulated_pool.reserve_base;
-            let denominator = (simulated_pool.reserve_quote * pool.fee_denominator) + amount_in_with_fee;
+            let denominator =
+                (simulated_pool.reserve_quote * pool.fee_denominator) + amount_in_with_fee;
 
             if denominator > 0 {
                 let amount_out = numerator / denominator;
@@ -66,7 +67,8 @@ impl SpeculativeStateSimulator {
             // Trader inputs base (e.g. WETH), receives quote (e.g. USDC)
             let amount_in_with_fee = tx.amount_in * pool.fee_numerator;
             let numerator = amount_in_with_fee * simulated_pool.reserve_quote;
-            let denominator = (simulated_pool.reserve_base * pool.fee_denominator) + amount_in_with_fee;
+            let denominator =
+                (simulated_pool.reserve_base * pool.fee_denominator) + amount_in_with_fee;
 
             if denominator > 0 {
                 let amount_out = numerator / denominator;

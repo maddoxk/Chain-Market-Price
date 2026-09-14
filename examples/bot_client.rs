@@ -50,7 +50,8 @@ fn main() {
     println!(">>> Received binary frame from wire: {} bytes", encoded_len);
 
     // Zero-Copy Decoding
-    let decoded_bbo = decode_bbo_sbe(&sbe_buffer[..encoded_len]).expect("Failed to decode SBE frame");
+    let decoded_bbo =
+        decode_bbo_sbe(&sbe_buffer[..encoded_len]).expect("Failed to decode SBE frame");
 
     let bid_usd = decoded_bbo.bid_price as f64 / 1e8;
     let ask_usd = decoded_bbo.ask_price as f64 / 1e8;
@@ -60,10 +61,21 @@ fn main() {
     println!("------------------------------------------------------------");
     println!("Market ID:          {}", decoded_bbo.market_id);
     println!("Exchange Venue:     Binance (ID: {})", decoded_bbo.venue);
-    println!("Best Bid:           ${:.2} (Size: {:.4} BTC)", bid_usd, decoded_bbo.bid_qty as f64 / 1e8);
-    println!("Best Ask:           ${:.2} (Size: {:.4} BTC)", ask_usd, decoded_bbo.ask_qty as f64 / 1e8);
+    println!(
+        "Best Bid:           ${:.2} (Size: {:.4} BTC)",
+        bid_usd,
+        decoded_bbo.bid_qty as f64 / 1e8
+    );
+    println!(
+        "Best Ask:           ${:.2} (Size: {:.4} BTC)",
+        ask_usd,
+        decoded_bbo.ask_qty as f64 / 1e8
+    );
     println!("Spread:             {} bps", decoded_bbo.spread_bps);
-    println!("Internal Latency:   {:.2} µs (p50 SLA: < 3.2 µs)", engine_latency_us);
+    println!(
+        "Internal Latency:   {:.2} µs (p50 SLA: < 3.2 µs)",
+        engine_latency_us
+    );
     println!("Total Wire Egress:  {:.2} µs", wire_latency_us);
     println!("------------------------------------------------------------");
     println!();
@@ -76,7 +88,10 @@ fn main() {
         println!(">>> [ARBITRAGE SIGNAL DETECTED]");
         println!("    Buy on Uniswap v3:  ${:.2}", dex_ask_usd);
         println!("    Sell on Binance:    ${:.2}", bid_usd);
-        println!("    Gross Profit:       ${:.2} per BTC ({:.2} bps)", arb_spread, arb_bps);
+        println!(
+            "    Gross Profit:       ${:.2} per BTC ({:.2} bps)",
+            arb_spread, arb_bps
+        );
         println!("    Action: Triggering atomic execution bundle...");
     }
 

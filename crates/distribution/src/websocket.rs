@@ -3,8 +3,8 @@
 //! Implements RFC 6455 framing with vectorized 64-bit XOR payload unmasking,
 //! connection lifecycle, subscription command handling, and ping/pong keepalive.
 
-use std::sync::Arc;
 use ingest_models::{NormalizedBbo, UnifiedTrade};
+use std::sync::Arc;
 
 use crate::fast_json::FastJsonWriter;
 use crate::router::{DispatchMetrics, InvertedTopicRouter};
@@ -384,11 +384,15 @@ impl WebSocketServerEngine {
         let mut sbe_cached_len = 0;
         let mut json_cached_len = 0;
 
-        self.router.dispatch_bbo(bbo, now_ms, |client_id, protocol, raw_payload| {
-            match protocol {
+        self.router.dispatch_bbo(
+            bbo,
+            now_ms,
+            |client_id, protocol, raw_payload| match protocol {
                 WireProtocol::Sbe => {
                     if sbe_cached_len == 0 {
-                        if let Ok(len) = encode_ws_frame(WsOpcode::Binary, raw_payload, &mut framed_sbe) {
+                        if let Ok(len) =
+                            encode_ws_frame(WsOpcode::Binary, raw_payload, &mut framed_sbe)
+                        {
                             sbe_cached_len = len;
                         }
                     }
@@ -398,7 +402,9 @@ impl WebSocketServerEngine {
                 }
                 WireProtocol::Json => {
                     if json_cached_len == 0 {
-                        if let Ok(len) = encode_ws_frame(WsOpcode::Text, raw_payload, &mut framed_json) {
+                        if let Ok(len) =
+                            encode_ws_frame(WsOpcode::Text, raw_payload, &mut framed_json)
+                        {
                             json_cached_len = len;
                         }
                     }
@@ -406,8 +412,8 @@ impl WebSocketServerEngine {
                         send_fn(client_id, &framed_json[..json_cached_len]);
                     }
                 }
-            }
-        })
+            },
+        )
     }
 
     /// Broadcast UnifiedTrade wrapped in RFC 6455 WebSocket frames
@@ -424,11 +430,16 @@ impl WebSocketServerEngine {
         let mut sbe_cached_len = 0;
         let mut json_cached_len = 0;
 
-        self.router.dispatch_trade(trade, notional_usd, now_ms, |client_id, protocol, raw_payload| {
-            match protocol {
+        self.router.dispatch_trade(
+            trade,
+            notional_usd,
+            now_ms,
+            |client_id, protocol, raw_payload| match protocol {
                 WireProtocol::Sbe => {
                     if sbe_cached_len == 0 {
-                        if let Ok(len) = encode_ws_frame(WsOpcode::Binary, raw_payload, &mut framed_sbe) {
+                        if let Ok(len) =
+                            encode_ws_frame(WsOpcode::Binary, raw_payload, &mut framed_sbe)
+                        {
                             sbe_cached_len = len;
                         }
                     }
@@ -438,7 +449,9 @@ impl WebSocketServerEngine {
                 }
                 WireProtocol::Json => {
                     if json_cached_len == 0 {
-                        if let Ok(len) = encode_ws_frame(WsOpcode::Text, raw_payload, &mut framed_json) {
+                        if let Ok(len) =
+                            encode_ws_frame(WsOpcode::Text, raw_payload, &mut framed_json)
+                        {
                             json_cached_len = len;
                         }
                     }
@@ -446,8 +459,8 @@ impl WebSocketServerEngine {
                         send_fn(client_id, &framed_json[..json_cached_len]);
                     }
                 }
-            }
-        })
+            },
+        )
     }
 }
 
@@ -486,7 +499,9 @@ mod tests {
     #[test]
     fn test_ws_server_ping_pong() {
         let engine = WebSocketServerEngine::new();
-        engine.handle_client_connect(1, WireProtocol::Json, 1000, 10, 0).unwrap();
+        engine
+            .handle_client_connect(1, WireProtocol::Json, 1000, 10, 0)
+            .unwrap();
 
         // Craft masked Ping frame from client
         let mask = [0x12, 0x34, 0x56, 0x78];
@@ -519,9 +534,12 @@ mod tests {
     #[test]
     fn test_ws_client_subscribe_flow() {
         let engine = WebSocketServerEngine::new();
-        engine.handle_client_connect(10, WireProtocol::Json, 1000, 10, 0).unwrap();
+        engine
+            .handle_client_connect(10, WireProtocol::Json, 1000, 10, 0)
+            .unwrap();
 
-        let sub_cmd = br#"{"action":"subscribe","venue":1,"market_id":42,"stream_type":1,"flags":0}"#;
+        let sub_cmd =
+            br#"{"action":"subscribe","venue":1,"market_id":42,"stream_type":1,"flags":0}"#;
         let mask = [0x01, 0x02, 0x03, 0x04];
         let mut masked_sub = sub_cmd.to_vec();
         for (i, b) in masked_sub.iter_mut().enumerate() {

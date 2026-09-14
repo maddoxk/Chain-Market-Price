@@ -2,9 +2,9 @@
 
 use distribution::{
     decode_bbo_sbe, decode_trade_sbe, decode_ws_frame_header, encode_bbo_sbe, encode_trade_sbe,
-    serialize_bbo_json, serialize_trade_json, ClientFilterPredicate,
-    ClientSession, InvertedTopicRouter, TopicKey, WebSocketServerEngine, WireProtocol, WsOpcode,
-    STREAM_TYPE_BBO, TOTAL_SBE_BBO_LEN, TOTAL_SBE_TRADE_LEN,
+    serialize_bbo_json, serialize_trade_json, ClientFilterPredicate, ClientSession,
+    InvertedTopicRouter, TopicKey, WebSocketServerEngine, WireProtocol, WsOpcode, STREAM_TYPE_BBO,
+    TOTAL_SBE_BBO_LEN, TOTAL_SBE_TRADE_LEN,
 };
 use ingest_models::{NormalizedBbo, TelemetryTimestamps, UnifiedTrade};
 
@@ -57,7 +57,7 @@ fn test_end_to_end_sbe_trade_serialization_and_deserialization() {
             t3_egress_ns: 400,
         },
         market_id: 202,
-        venue: 102, // UniswapV3
+        venue: 102,   // UniswapV3
         chain: 42161, // Arbitrum
         sequence: 555_555,
         trade_id: 1_234_567,
@@ -180,16 +180,14 @@ fn test_inverted_topic_router_multi_client_fanout() {
     let mut sbe_delivered = 0;
     let mut json_delivered = 0;
 
-    let metrics = router.dispatch_bbo(&bbo, 0, |_client_id, protocol, payload| {
-        match protocol {
-            WireProtocol::Sbe => {
-                sbe_delivered += 1;
-                assert_eq!(payload.len(), TOTAL_SBE_BBO_LEN);
-            }
-            WireProtocol::Json => {
-                json_delivered += 1;
-                assert!(payload.len() > 50);
-            }
+    let metrics = router.dispatch_bbo(&bbo, 0, |_client_id, protocol, payload| match protocol {
+        WireProtocol::Sbe => {
+            sbe_delivered += 1;
+            assert_eq!(payload.len(), TOTAL_SBE_BBO_LEN);
+        }
+        WireProtocol::Json => {
+            json_delivered += 1;
+            assert!(payload.len() > 50);
         }
     });
 
@@ -204,19 +202,17 @@ fn test_predicate_filtering_min_notional_and_spread() {
     let router = InvertedTopicRouter::new();
 
     // Client 1: max spread 3 bps
-    let client1 = ClientSession::new(1, WireProtocol::Json, 1000, 10, 0).with_filter(
-        ClientFilterPredicate {
+    let client1 =
+        ClientSession::new(1, WireProtocol::Json, 1000, 10, 0).with_filter(ClientFilterPredicate {
             max_spread_bps: 3,
             ..Default::default()
-        },
-    );
+        });
     // Client 2: max spread 10 bps
-    let client2 = ClientSession::new(2, WireProtocol::Json, 1000, 10, 0).with_filter(
-        ClientFilterPredicate {
+    let client2 =
+        ClientSession::new(2, WireProtocol::Json, 1000, 10, 0).with_filter(ClientFilterPredicate {
             max_spread_bps: 10,
             ..Default::default()
-        },
-    );
+        });
 
     router.register_client(client1).unwrap();
     router.register_client(client2).unwrap();
@@ -247,7 +243,9 @@ fn test_ws_server_complete_flow() {
     let ws_server = WebSocketServerEngine::new();
 
     // Client connects
-    ws_server.handle_client_connect(100, WireProtocol::Json, 1000, 50, 0).unwrap();
+    ws_server
+        .handle_client_connect(100, WireProtocol::Json, 1000, 50, 0)
+        .unwrap();
 
     // Client sends subscription command
     let sub_cmd = br#"{"action":"subscribe","venue":1,"market_id":500,"stream_type":1,"flags":0}"#;

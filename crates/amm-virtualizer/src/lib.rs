@@ -21,10 +21,10 @@ use core_engine::{ContiguousOrderBook, PRICE_LEVELS_COUNT, TICK_SIZE};
 /// Uniswap v2 Constant Product ($x \cdot y = k$) Virtualizer
 #[derive(Clone, Debug)]
 pub struct UniswapV2Pool {
-    pub reserve_base: u128,   // Reserve 0 (e.g. WETH in wei)
-    pub reserve_quote: u128,  // Reserve 1 (e.g. USDC in 6 or 18 decimals)
-    pub fee_numerator: u128,  // e.g. 997 (0.3% fee)
-    pub fee_denominator: u128,// 1000
+    pub reserve_base: u128,    // Reserve 0 (e.g. WETH in wei)
+    pub reserve_quote: u128,   // Reserve 1 (e.g. USDC in 6 or 18 decimals)
+    pub fee_numerator: u128,   // e.g. 997 (0.3% fee)
+    pub fee_denominator: u128, // 1000
     pub base_decimals: u8,
     pub quote_decimals: u8,
 }
@@ -79,7 +79,9 @@ impl UniswapV2Pool {
 
                 if self.reserve_base > target_base {
                     let delta_base = self.reserve_base - target_base;
-                    let qty_scaled = ((delta_base * 100_000_000) / (10u128.pow(self.base_decimals as u32))) as u64;
+                    let qty_scaled = ((delta_base * 100_000_000)
+                        / (10u128.pow(self.base_decimals as u32)))
+                        as u64;
 
                     // Update ask level in book
                     let diff = (target_price - book.base_price) / TICK_SIZE;
@@ -102,7 +104,9 @@ impl UniswapV2Pool {
 
                 if target_base > self.reserve_base {
                     let delta_base = target_base - self.reserve_base;
-                    let qty_scaled = ((delta_base * 100_000_000) / (10u128.pow(self.base_decimals as u32))) as u64;
+                    let qty_scaled = ((delta_base * 100_000_000)
+                        / (10u128.pow(self.base_decimals as u32)))
+                        as u64;
                     book.update_bid(target_bid_price, qty_scaled, 1, ts_ns);
                 }
             }
@@ -128,7 +132,12 @@ pub struct ConcentratedLiquidityPool {
 }
 
 impl ConcentratedLiquidityPool {
-    pub fn new(current_tick: i32, sqrt_price_x96: u128, current_liquidity: u128, tick_spacing: i32) -> Self {
+    pub fn new(
+        current_tick: i32,
+        sqrt_price_x96: u128,
+        current_liquidity: u128,
+        tick_spacing: i32,
+    ) -> Self {
         Self {
             current_tick,
             sqrt_price_x96,
@@ -186,8 +195,13 @@ impl ConcentratedLiquidityPool {
 
         // Reset and iterate through ticks below current_tick (bids)
         let mut bid_liquidity = self.current_liquidity;
-        for tick in ticks.iter().filter(|t| t.tick_index <= self.current_tick).rev() {
-            let price_step = spot.saturating_sub((self.current_tick - tick.tick_index) as i64 * 100);
+        for tick in ticks
+            .iter()
+            .filter(|t| t.tick_index <= self.current_tick)
+            .rev()
+        {
+            let price_step =
+                spot.saturating_sub((self.current_tick - tick.tick_index) as i64 * 100);
             if price_step > 0 {
                 let available_qty = (bid_liquidity / 1_000_000_000) as u64;
                 book.update_bid(price_step, available_qty, 1, ts_ns);

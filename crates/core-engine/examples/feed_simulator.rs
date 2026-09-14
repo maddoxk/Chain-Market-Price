@@ -29,7 +29,7 @@ fn main() {
     let burst_config = FeedBurstConfig {
         target_msg_rate_per_sec: 500_000,
         burst_size: 2_500,               // 2,500 messages per micro-burst
-        burst_interval_micros: 5_000,     // 5ms interval -> nominal 500k msgs/sec
+        burst_interval_micros: 5_000,    // 5ms interval -> nominal 500k msgs/sec
         jitter_min_ns: 250,              // 250 ns min wire/NIC jitter
         jitter_max_ns: 2_500,            // 2.5 µs max wire/NIC jitter
         base_btc_price: 65_420_00000000, // $65,420.00
@@ -38,10 +38,21 @@ fn main() {
     };
 
     println!("Simulation Configuration:");
-    println!("  - Target Throughput Rate: {} msgs/sec", burst_config.target_msg_rate_per_sec);
-    println!("  - Micro-Burst Size:       {} msgs / burst", burst_config.burst_size);
-    println!("  - Injected Wire Jitter:   {} ns – {} ns", burst_config.jitter_min_ns, burst_config.jitter_max_ns);
-    println!("  - Simulated Venues:       Binance Spot/Futures (CeFi), OKX v5 (CeFi), Uniswap v3 (DeFi)");
+    println!(
+        "  - Target Throughput Rate: {} msgs/sec",
+        burst_config.target_msg_rate_per_sec
+    );
+    println!(
+        "  - Micro-Burst Size:       {} msgs / burst",
+        burst_config.burst_size
+    );
+    println!(
+        "  - Injected Wire Jitter:   {} ns – {} ns",
+        burst_config.jitter_min_ns, burst_config.jitter_max_ns
+    );
+    println!(
+        "  - Simulated Venues:       Binance Spot/Futures (CeFi), OKX v5 (CeFi), Uniswap v3 (DeFi)"
+    );
     println!();
 
     // 2. Setup Backpressure Isolated Queues
@@ -111,14 +122,16 @@ fn main() {
             let event = burst_buf[i];
 
             // Dispatch to Fast Consumer with DropNewest policy
-            let fast_res = fast_consumer_queue.push_with_policy(event, SaturationDropPolicy::DropNewest);
+            let fast_res =
+                fast_consumer_queue.push_with_policy(event, SaturationDropPolicy::DropNewest);
             assert!(
                 fast_res == PushResult::Enqueued,
                 "Fast consumer should NEVER drop messages under steady consumption!"
             );
 
             // Dispatch to Slow Consumer with DropOldest policy (evicts stale ticks)
-            let _slow_res = slow_consumer_queue.push_with_policy(event, SaturationDropPolicy::DropOldest);
+            let _slow_res =
+                slow_consumer_queue.push_with_policy(event, SaturationDropPolicy::DropOldest);
         }
 
         // Space micro-bursts
@@ -135,21 +148,39 @@ fn main() {
     let fast_processed = fast_handle.join().unwrap();
     let slow_processed = slow_handle.join().unwrap();
 
-    let fast_dropped = fast_consumer_queue.metrics.total_dropped.load(Ordering::Relaxed);
-    let slow_dropped = slow_consumer_queue.metrics.total_dropped.load(Ordering::Relaxed);
-    let slow_evicted = slow_consumer_queue.metrics.total_evicted.load(Ordering::Relaxed);
-    let slow_saturations = slow_consumer_queue.metrics.saturation_events.load(Ordering::Relaxed);
+    let fast_dropped = fast_consumer_queue
+        .metrics
+        .total_dropped
+        .load(Ordering::Relaxed);
+    let slow_dropped = slow_consumer_queue
+        .metrics
+        .total_dropped
+        .load(Ordering::Relaxed);
+    let slow_evicted = slow_consumer_queue
+        .metrics
+        .total_evicted
+        .load(Ordering::Relaxed);
+    let slow_saturations = slow_consumer_queue
+        .metrics
+        .saturation_events
+        .load(Ordering::Relaxed);
 
     println!();
     println!("--------------------------------------------------------------------------------");
     println!("                         STRESS TEST RESULTS & METRICS                          ");
     println!("--------------------------------------------------------------------------------");
     println!("Total Generated Events:        {} msgs", total_generated);
-    println!("Total Elapsed Time:            {:.3} ms", elapsed.as_secs_f64() * 1000.0);
+    println!(
+        "Total Elapsed Time:            {:.3} ms",
+        elapsed.as_secs_f64() * 1000.0
+    );
     println!("Observed Generation Rate:      {:.0} msgs/sec", throughput);
     println!();
     println!("Fast Consumer (HFT Core Engine / Quant Bot):");
-    println!("  - Delivered & Processed:     {} msgs (100.0%)", fast_processed);
+    println!(
+        "  - Delivered & Processed:     {} msgs (100.0%)",
+        fast_processed
+    );
     println!("  - Saturation Drops:          {} msgs", fast_dropped);
     println!("  - Queue Saturation Events:   0");
     println!("  - Status:                    PASSED (Zero Latency Penalty)");
@@ -164,11 +195,23 @@ fn main() {
     println!();
 
     // 6. Assertions for Verification
-    assert!(total_generated >= 125_000, "Should have generated 125k msgs");
+    assert!(
+        total_generated >= 125_000,
+        "Should have generated 125k msgs"
+    );
     assert_eq!(fast_dropped, 0, "Fast consumer must experience zero drops");
-    assert_eq!(fast_processed as usize, total_generated, "Fast consumer must process all events");
-    assert!(slow_saturations > 0, "Slow consumer must have triggered queue saturation");
-    assert!(slow_evicted > 0, "Slow consumer must have invoked DropOldest eviction policy");
+    assert_eq!(
+        fast_processed as usize, total_generated,
+        "Fast consumer must process all events"
+    );
+    assert!(
+        slow_saturations > 0,
+        "Slow consumer must have triggered queue saturation"
+    );
+    assert!(
+        slow_evicted > 0,
+        "Slow consumer must have invoked DropOldest eviction policy"
+    );
 
     println!(">>> BACKPRESSURE ISOLATION VERIFIED: Slow consumer saturation did NOT stall fast consumer!");
     println!(">>> SUCCESS: All architectural invariants and throughput requirements satisfied.");

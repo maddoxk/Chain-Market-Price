@@ -12,9 +12,9 @@
 
 #![allow(clippy::all)]
 
-use std::sync::atomic::{AtomicU64, Ordering};
 use core_engine::CachePadded;
 use ingest_models::{NormalizedBbo, TelemetryTimestamps, UnifiedTrade};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 /// Magic identifier for Chain-Market-Price SHM file: "CMP1" in ASCII
 pub const SHM_MAGIC: u32 = 0x434D_5031;
@@ -133,8 +133,13 @@ impl<const N: usize> ShmRingBuffer<N> {
         slot.flags = bbo.flags;
         slot.sequence = next_seq;
 
-        self.header.writer_heartbeat_ns.store(now_ns, Ordering::Relaxed);
-        self.header.head_sequence.0.store(next_seq, Ordering::Release);
+        self.header
+            .writer_heartbeat_ns
+            .store(now_ns, Ordering::Relaxed);
+        self.header
+            .head_sequence
+            .0
+            .store(next_seq, Ordering::Release);
         next_seq
     }
 
@@ -155,8 +160,13 @@ impl<const N: usize> ShmRingBuffer<N> {
         slot.flags = if trade.is_liquidation { 0x01 } else { 0x00 };
         slot.sequence = next_seq;
 
-        self.header.writer_heartbeat_ns.store(now_ns, Ordering::Relaxed);
-        self.header.head_sequence.0.store(next_seq, Ordering::Release);
+        self.header
+            .writer_heartbeat_ns
+            .store(now_ns, Ordering::Relaxed);
+        self.header
+            .head_sequence
+            .0
+            .store(next_seq, Ordering::Release);
         next_seq
     }
 
@@ -172,7 +182,9 @@ impl<const N: usize> ShmRingBuffer<N> {
         if head > *reader_cursor + N as u64 {
             let missed = head - (*reader_cursor + N as u64);
             *reader_cursor = head - (N as u64); // Catch up to tail
-            return ShmReadStatus::Overrun { missed_messages: missed };
+            return ShmReadStatus::Overrun {
+                missed_messages: missed,
+            };
         }
 
         let next_cursor = *reader_cursor + 1;
@@ -230,7 +242,10 @@ mod tests {
         assert_eq!(reader_cursor, 1);
 
         // Subsequent read should report Empty
-        assert_eq!(ring.try_read(&mut reader_cursor, &mut out), ShmReadStatus::Empty);
+        assert_eq!(
+            ring.try_read(&mut reader_cursor, &mut out),
+            ShmReadStatus::Empty
+        );
     }
 
     #[test]

@@ -36,12 +36,7 @@ pub struct CurvePool {
 
 impl CurvePool {
     /// Creates a 2-token Curve pool (e.g. stETH/ETH)
-    pub fn new_2pool(
-        reserves: [u128; 2],
-        decimals: [u8; 2],
-        a: u128,
-        fee_bps: u16,
-    ) -> Self {
+    pub fn new_2pool(reserves: [u128; 2], decimals: [u8; 2], a: u128, fee_bps: u16) -> Self {
         let mut raw = [0u128; MAX_COINS];
         let mut mults = [1u128; MAX_COINS];
 
@@ -61,12 +56,7 @@ impl CurvePool {
     }
 
     /// Creates a 3-token Curve pool (e.g. 3pool DAI / USDC / USDT)
-    pub fn new_3pool(
-        reserves: [u128; 3],
-        decimals: [u8; 3],
-        a: u128,
-        fee_bps: u16,
-    ) -> Self {
+    pub fn new_3pool(reserves: [u128; 3], decimals: [u8; 3], a: u128, fee_bps: u16) -> Self {
         let mut mults = [1u128; MAX_COINS];
         for i in 0..3 {
             mults[i] = 10u128.pow((18 - decimals[i]) as u32);
@@ -282,7 +272,9 @@ mod tests {
         assert!(spot >= 99_900_000 && spot <= 100_100_000);
 
         // Swap 10,000 DAI -> expect ~9,996 USDC (after 4 bps fee)
-        let dy = pool.calculate_swap_output(0, 1, 10_000 * 10u128.pow(18)).expect("Swap output failed");
+        let dy = pool
+            .calculate_swap_output(0, 1, 10_000 * 10u128.pow(18))
+            .expect("Swap output failed");
         let dy_scaled = dy as f64 / 1e6;
         assert!(dy_scaled >= 9990.0 && dy_scaled <= 10000.0);
     }

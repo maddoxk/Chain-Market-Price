@@ -3,9 +3,9 @@
 //! Maps 64-bit TopicKeys directly to dynamic Roaring-style client bitmaps.
 //! Delivers sub-microsecond predicate filtering and lazy dual-wire (SBE/JSON) serialization.
 
+use ingest_models::{NormalizedBbo, UnifiedTrade};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use ingest_models::{NormalizedBbo, UnifiedTrade};
 
 use crate::bitmap::ClientBitmap;
 use crate::fast_json::{serialize_bbo_json, serialize_trade_json};
@@ -58,7 +58,10 @@ impl InvertedTopicRouter {
 
     /// Register a new client session into the router
     pub fn register_client(&self, session: ClientSession) -> Result<u32, RouterError> {
-        let mut clients = self.clients.write().map_err(|_| RouterError::LockPoisoned)?;
+        let mut clients = self
+            .clients
+            .write()
+            .map_err(|_| RouterError::LockPoisoned)?;
         let id = session.id;
         if clients.contains_key(&id) {
             return Err(RouterError::ClientAlreadyExists(id));
@@ -70,8 +73,13 @@ impl InvertedTopicRouter {
     /// Unregister a client session and remove all its topic subscriptions
     pub fn unregister_client(&self, client_id: u32) -> Result<(), RouterError> {
         {
-            let mut clients = self.clients.write().map_err(|_| RouterError::LockPoisoned)?;
-            let session = clients.remove(&client_id).ok_or(RouterError::ClientNotFound(client_id))?;
+            let mut clients = self
+                .clients
+                .write()
+                .map_err(|_| RouterError::LockPoisoned)?;
+            let session = clients
+                .remove(&client_id)
+                .ok_or(RouterError::ClientNotFound(client_id))?;
             session.set_state(SessionState::Closed);
         }
 
@@ -87,7 +95,9 @@ impl InvertedTopicRouter {
     pub fn subscribe(&self, client_id: u32, topic: TopicKey) -> Result<(), RouterError> {
         {
             let clients = self.clients.read().map_err(|_| RouterError::LockPoisoned)?;
-            let session = clients.get(&client_id).ok_or(RouterError::ClientNotFound(client_id))?;
+            let session = clients
+                .get(&client_id)
+                .ok_or(RouterError::ClientNotFound(client_id))?;
             session.set_state(SessionState::Subscribed);
         }
 
@@ -107,10 +117,19 @@ impl InvertedTopicRouter {
     }
 
     /// Update dynamic filter predicate for a client
-    pub fn update_filter(&self, client_id: u32, filter: ClientFilterPredicate) -> Result<(), RouterError> {
+    pub fn update_filter(
+        &self,
+        client_id: u32,
+        filter: ClientFilterPredicate,
+    ) -> Result<(), RouterError> {
         let clients = self.clients.read().map_err(|_| RouterError::LockPoisoned)?;
-        let session = clients.get(&client_id).ok_or(RouterError::ClientNotFound(client_id))?;
-        let mut session_filter = session.filter.write().map_err(|_| RouterError::LockPoisoned)?;
+        let session = clients
+            .get(&client_id)
+            .ok_or(RouterError::ClientNotFound(client_id))?;
+        let mut session_filter = session
+            .filter
+            .write()
+            .map_err(|_| RouterError::LockPoisoned)?;
         *session_filter = filter;
         Ok(())
     }
@@ -134,7 +153,12 @@ impl InvertedTopicRouter {
     ) -> DispatchMetrics {
         let mut metrics = DispatchMetrics::default();
 
-        let exact_topic = TopicKey::new(bbo.venue as u8, bbo.market_id, STREAM_TYPE_BBO, bbo.flags as u32);
+        let exact_topic = TopicKey::new(
+            bbo.venue as u8,
+            bbo.market_id,
+            STREAM_TYPE_BBO,
+            bbo.flags as u32,
+        );
         let default_topic = TopicKey::new(bbo.venue as u8, bbo.market_id, STREAM_TYPE_BBO, 0);
 
         let candidate_bitmap = {
@@ -180,7 +204,8 @@ impl InvertedTopicRouter {
 
                 // Evaluate dynamic predicate: max spread bps filter
                 if let Ok(filter) = session.filter.read() {
-                    if filter.max_spread_bps > 0 && (bbo.spread_bps as u32) > filter.max_spread_bps {
+                    if filter.max_spread_bps > 0 && (bbo.spread_bps as u32) > filter.max_spread_bps
+                    {
                         metrics.filtered_clients += 1;
                         return;
                     }

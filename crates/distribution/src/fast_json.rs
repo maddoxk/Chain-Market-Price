@@ -231,7 +231,11 @@ pub fn serialize_trade_json(trade: &UnifiedTrade, out: &mut [u8]) -> Result<usiz
     writer.write_u64(trade.side as u64)?;
 
     writer.write_str(r#","is_liquidation":"#)?;
-    writer.write_str(if trade.is_liquidation { "true" } else { "false" })?;
+    writer.write_str(if trade.is_liquidation {
+        "true"
+    } else {
+        "false"
+    })?;
 
     writer.write_str(r#","telemetry":{"t0":"#)?;
     writer.write_u64(trade.telemetry.t0_exchange_ns)?;

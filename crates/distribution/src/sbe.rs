@@ -144,20 +144,38 @@ pub fn decode_bbo_sbe(buf: &[u8]) -> Result<NormalizedBbo, SbeError> {
         return Err(SbeError::UnsupportedTemplateId(header.template_id));
     }
 
-    let t0 = u64::from_le_bytes([buf[8], buf[9], buf[10], buf[11], buf[12], buf[13], buf[14], buf[15]]);
-    let t1 = u64::from_le_bytes([buf[16], buf[17], buf[18], buf[19], buf[20], buf[21], buf[22], buf[23]]);
-    let t2 = u64::from_le_bytes([buf[24], buf[25], buf[26], buf[27], buf[28], buf[29], buf[30], buf[31]]);
-    let t3 = u64::from_le_bytes([buf[32], buf[33], buf[34], buf[35], buf[36], buf[37], buf[38], buf[39]]);
+    let t0 = u64::from_le_bytes([
+        buf[8], buf[9], buf[10], buf[11], buf[12], buf[13], buf[14], buf[15],
+    ]);
+    let t1 = u64::from_le_bytes([
+        buf[16], buf[17], buf[18], buf[19], buf[20], buf[21], buf[22], buf[23],
+    ]);
+    let t2 = u64::from_le_bytes([
+        buf[24], buf[25], buf[26], buf[27], buf[28], buf[29], buf[30], buf[31],
+    ]);
+    let t3 = u64::from_le_bytes([
+        buf[32], buf[33], buf[34], buf[35], buf[36], buf[37], buf[38], buf[39],
+    ]);
 
     let venue = u16::from_le_bytes([buf[40], buf[41]]);
     let chain = u16::from_le_bytes([buf[42], buf[43]]);
     let market_id = u32::from_le_bytes([buf[44], buf[45], buf[46], buf[47]]);
-    let sequence = u64::from_le_bytes([buf[48], buf[49], buf[50], buf[51], buf[52], buf[53], buf[54], buf[55]]);
+    let sequence = u64::from_le_bytes([
+        buf[48], buf[49], buf[50], buf[51], buf[52], buf[53], buf[54], buf[55],
+    ]);
 
-    let bid_price = i64::from_le_bytes([buf[56], buf[57], buf[58], buf[59], buf[60], buf[61], buf[62], buf[63]]);
-    let bid_qty = u64::from_le_bytes([buf[64], buf[65], buf[66], buf[67], buf[68], buf[69], buf[70], buf[71]]);
-    let ask_price = i64::from_le_bytes([buf[72], buf[73], buf[74], buf[75], buf[76], buf[77], buf[78], buf[79]]);
-    let ask_qty = u64::from_le_bytes([buf[80], buf[81], buf[82], buf[83], buf[84], buf[85], buf[86], buf[87]]);
+    let bid_price = i64::from_le_bytes([
+        buf[56], buf[57], buf[58], buf[59], buf[60], buf[61], buf[62], buf[63],
+    ]);
+    let bid_qty = u64::from_le_bytes([
+        buf[64], buf[65], buf[66], buf[67], buf[68], buf[69], buf[70], buf[71],
+    ]);
+    let ask_price = i64::from_le_bytes([
+        buf[72], buf[73], buf[74], buf[75], buf[76], buf[77], buf[78], buf[79],
+    ]);
+    let ask_qty = u64::from_le_bytes([
+        buf[80], buf[81], buf[82], buf[83], buf[84], buf[85], buf[86], buf[87],
+    ]);
 
     let spread_bps = u16::from_le_bytes([buf[88], buf[89]]);
     let flags = u16::from_le_bytes([buf[90], buf[91]]);
@@ -258,20 +276,36 @@ pub fn decode_trade_sbe(buf: &[u8]) -> Result<UnifiedTrade, SbeError> {
         return Err(SbeError::UnsupportedTemplateId(header.template_id));
     }
 
-    let t0 = u64::from_le_bytes([buf[8], buf[9], buf[10], buf[11], buf[12], buf[13], buf[14], buf[15]]);
-    let t1 = u64::from_le_bytes([buf[16], buf[17], buf[18], buf[19], buf[20], buf[21], buf[22], buf[23]]);
-    let t2 = u64::from_le_bytes([buf[24], buf[25], buf[26], buf[27], buf[28], buf[29], buf[30], buf[31]]);
-    let t3 = u64::from_le_bytes([buf[32], buf[33], buf[34], buf[35], buf[36], buf[37], buf[38], buf[39]]);
+    let t0 = u64::from_le_bytes([
+        buf[8], buf[9], buf[10], buf[11], buf[12], buf[13], buf[14], buf[15],
+    ]);
+    let t1 = u64::from_le_bytes([
+        buf[16], buf[17], buf[18], buf[19], buf[20], buf[21], buf[22], buf[23],
+    ]);
+    let t2 = u64::from_le_bytes([
+        buf[24], buf[25], buf[26], buf[27], buf[28], buf[29], buf[30], buf[31],
+    ]);
+    let t3 = u64::from_le_bytes([
+        buf[32], buf[33], buf[34], buf[35], buf[36], buf[37], buf[38], buf[39],
+    ]);
 
     let venue = u16::from_le_bytes([buf[40], buf[41]]);
     let chain = u16::from_le_bytes([buf[42], buf[43]]);
     let market_id = u32::from_le_bytes([buf[44], buf[45], buf[46], buf[47]]);
-    let sequence = u64::from_le_bytes([buf[48], buf[49], buf[50], buf[51], buf[52], buf[53], buf[54], buf[55]]);
-    let trade_id = u64::from_le_bytes([buf[56], buf[57], buf[58], buf[59], buf[60], buf[61], buf[62], buf[63]]);
+    let sequence = u64::from_le_bytes([
+        buf[48], buf[49], buf[50], buf[51], buf[52], buf[53], buf[54], buf[55],
+    ]);
+    let trade_id = u64::from_le_bytes([
+        buf[56], buf[57], buf[58], buf[59], buf[60], buf[61], buf[62], buf[63],
+    ]);
 
     let side = buf[64];
-    let price = i64::from_le_bytes([buf[65], buf[66], buf[67], buf[68], buf[69], buf[70], buf[71], buf[72]]);
-    let size = u64::from_le_bytes([buf[73], buf[74], buf[75], buf[76], buf[77], buf[78], buf[79], buf[80]]);
+    let price = i64::from_le_bytes([
+        buf[65], buf[66], buf[67], buf[68], buf[69], buf[70], buf[71], buf[72],
+    ]);
+    let size = u64::from_le_bytes([
+        buf[73], buf[74], buf[75], buf[76], buf[77], buf[78], buf[79], buf[80],
+    ]);
 
     let is_liquidation = buf[91] != 0;
 

@@ -54,7 +54,10 @@ unsafe impl<T: Send, const N: usize> Sync for SpscRingBuffer<T, N> {}
 
 impl<T: Copy + Default, const N: usize> SpscRingBuffer<T, N> {
     pub fn new() -> Self {
-        assert!(N.is_power_of_two(), "Buffer capacity must be a power of two");
+        assert!(
+            N.is_power_of_two(),
+            "Buffer capacity must be a power of two"
+        );
         let mut vec = Vec::with_capacity(N);
         for _ in 0..N {
             vec.push(UnsafeCell::new(T::default()));
@@ -91,7 +94,9 @@ impl<T: Copy + Default, const N: usize> SpscRingBuffer<T, N> {
         }
 
         // Release barrier ensures payload write is visible before cursor increments
-        self.producer_cursor.0.store(current_head + 1, Ordering::Release);
+        self.producer_cursor
+            .0
+            .store(current_head + 1, Ordering::Release);
         Ok(())
     }
 
@@ -112,7 +117,9 @@ impl<T: Copy + Default, const N: usize> SpscRingBuffer<T, N> {
         let slot_index = (current_tail as usize) & (N - 1);
         let item = unsafe { *self.buffer[slot_index].get() };
 
-        self.consumer_cursor.0.store(current_tail + 1, Ordering::Release);
+        self.consumer_cursor
+            .0
+            .store(current_tail + 1, Ordering::Release);
         Some(item)
     }
 }
@@ -127,8 +134,8 @@ pub const TICK_SIZE: i64 = 100_000; // 0.001 in 10^8 fixed scale
 #[repr(C, align(64))]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 pub struct PriceLevel {
-    pub price: i64,          // Scaled 10^8
-    pub quantity: u64,       // Scaled 10^8
+    pub price: i64,    // Scaled 10^8
+    pub quantity: u64, // Scaled 10^8
     pub order_count: u32,
     pub last_update_ts: u64, // Hardware nanosecond timestamp
 }
@@ -216,7 +223,11 @@ pub fn parse_fixed_point_8(val: &[u8]) -> i64 {
         i += 1;
     }
 
-    let mut shift = 8 - if decimal_places < 0 { 0 } else { decimal_places };
+    let mut shift = 8 - if decimal_places < 0 {
+        0
+    } else {
+        decimal_places
+    };
     while shift > 0 {
         result *= 10;
         shift -= 1;

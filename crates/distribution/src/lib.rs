@@ -143,7 +143,8 @@ impl LockFreeTokenBucket {
                     if available_tokens >= self.burst_capacity {
                         now_ms
                     } else {
-                        let refilled_ms = (refilled as u64 * 1000) / self.refill_rate_per_sec as u64;
+                        let refilled_ms =
+                            (refilled as u64 * 1000) / self.refill_rate_per_sec as u64;
                         (last_refill_ms + refilled_ms).min(now_ms)
                     }
                 } else {
@@ -160,12 +161,10 @@ impl LockFreeTokenBucket {
             let new_tokens = available_tokens - tokens;
             let next = (next_ts << 24) | (new_tokens as u64 & 0x00FF_FFFF);
 
-            match self.state.compare_exchange_weak(
-                curr,
-                next,
-                Ordering::Release,
-                Ordering::Relaxed,
-            ) {
+            match self
+                .state
+                .compare_exchange_weak(curr, next, Ordering::Release, Ordering::Relaxed)
+            {
                 Ok(_) => return true,
                 Err(actual) => curr = actual,
             }

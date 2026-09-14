@@ -23,8 +23,8 @@ use std::time::Instant;
 use cefi_ingest::CefiParser;
 use core_engine::{ContiguousOrderBook, SpscRingBuffer};
 use distribution::{
-    encode_bbo_sbe, ClientSession, InvertedTopicRouter, TopicKey, WireProtocol,
-    STREAM_TYPE_BBO, TOTAL_SBE_BBO_LEN,
+    encode_bbo_sbe, ClientSession, InvertedTopicRouter, TopicKey, WireProtocol, STREAM_TYPE_BBO,
+    TOTAL_SBE_BBO_LEN,
 };
 use ingest_models::NormalizedBbo;
 
@@ -78,7 +78,10 @@ fn main() {
     let mut latencies_book_ns = Vec::with_capacity(BENCHMARK_SAMPLES);
     let mut latencies_egress_ns = Vec::with_capacity(BENCHMARK_SAMPLES);
 
-    println!(">>> Running warm-up phase ({} iterations)...", WARMUP_ROUNDS);
+    println!(
+        ">>> Running warm-up phase ({} iterations)...",
+        WARMUP_ROUNDS
+    );
     for i in 0..WARMUP_ROUNDS {
         let t1 = 1_000_000 + i as u64;
         let bbo = CefiParser::parse_binance_bbo(101, raw_payload, t1).unwrap();
@@ -92,7 +95,10 @@ fn main() {
     }
     println!(">>> Warm-up completed cleanly.\n");
 
-    println!(">>> Executing High-Resolution Pipeline Benchmark ({} iterations)...", BENCHMARK_SAMPLES);
+    println!(
+        ">>> Executing High-Resolution Pipeline Benchmark ({} iterations)...",
+        BENCHMARK_SAMPLES
+    );
 
     for i in 0..BENCHMARK_SAMPLES {
         // --- STAGE 1: Packet Wire Ingress / NIC DMA Arrival (T1) ---
@@ -101,7 +107,8 @@ fn main() {
 
         // --- STAGE 2 & 3: SIMD JSON Parsing & Normalization ---
         let t_parse_start = Instant::now();
-        let mut bbo = CefiParser::parse_binance_bbo(101, black_box(raw_payload), t1_ingest_nic).unwrap();
+        let mut bbo =
+            CefiParser::parse_binance_bbo(101, black_box(raw_payload), t1_ingest_nic).unwrap();
         let parse_elapsed_ns = t_parse_start.elapsed().as_nanos() as u64;
 
         // --- STAGE 4: SPSC Ring Buffer Hand-off #1 ---
@@ -160,24 +167,60 @@ fn main() {
     println!("                   PIPELINE STAGE LATENCY BREAKDOWN (p50)                      ");
     println!("--------------------------------------------------------------------------------");
     println!(" Stage 1: NIC DMA Hand-off + Ring Arrival:               0.42 us (Hardware PTP)");
-    println!(" Stage 2: SIMD JSON Parsing & Normalization:             {:>4.2} us ({:>4} ns)", p50_parse as f64 / 1000.0, p50_parse);
+    println!(
+        " Stage 2: SIMD JSON Parsing & Normalization:             {:>4.2} us ({:>4} ns)",
+        p50_parse as f64 / 1000.0,
+        p50_parse
+    );
     println!(" Stage 3: SPSC Queue Transfer #1 (Ingest -> Engine):     0.08 us (Lock-Free)");
-    println!(" Stage 4: Contiguous OrderBook L2 Ladder Update:         {:>4.2} us ({:>4} ns)", p50_book as f64 / 1000.0, p50_book);
+    println!(
+        " Stage 4: Contiguous OrderBook L2 Ladder Update:         {:>4.2} us ({:>4} ns)",
+        p50_book as f64 / 1000.0,
+        p50_book
+    );
     println!(" Stage 5: SPSC Queue Transfer #2 (Engine -> Router):     0.08 us (Lock-Free)");
-    println!(" Stage 6: Inverted Topic Router + SBE 92-byte Encoding:  {:>4.2} us ({:>4} ns)", p50_egress as f64 / 1000.0, p50_egress);
+    println!(
+        " Stage 6: Inverted Topic Router + SBE 92-byte Encoding:  {:>4.2} us ({:>4} ns)",
+        p50_egress as f64 / 1000.0,
+        p50_egress
+    );
     println!("--------------------------------------------------------------------------------");
-    println!(" TOTAL IN-MEMORY TICK-TO-EGRESS LATENCY (Median p50):   {:>4.2} us ({:>4} ns)", p50_full as f64 / 1000.0, p50_full);
+    println!(
+        " TOTAL IN-MEMORY TICK-TO-EGRESS LATENCY (Median p50):   {:>4.2} us ({:>4} ns)",
+        p50_full as f64 / 1000.0,
+        p50_full
+    );
     println!("--------------------------------------------------------------------------------");
     println!();
 
     println!("--------------------------------------------------------------------------------");
     println!("          HIGH-DYNAMIC-RANGE (HDR) PERCENTILE LATENCY DISTRIBUTION              ");
     println!("--------------------------------------------------------------------------------");
-    println!("  50.0th Percentile (p50 / Median):   {:>6.3} us  ({:>5} ns)", p50_full as f64 / 1000.0, p50_full);
-    println!("  90.0th Percentile (p90):            {:>6.3} us  ({:>5} ns)", p90_full as f64 / 1000.0, p90_full);
-    println!("  99.0th Percentile (p99):            {:>6.3} us  ({:>5} ns)", p99_full as f64 / 1000.0, p99_full);
-    println!("  99.9th Percentile (p99.9):          {:>6.3} us  ({:>5} ns)", p999_full as f64 / 1000.0, p999_full);
-    println!("  Maximum Observed Jitter (Max):      {:>6.3} us  ({:>5} ns)", max_full as f64 / 1000.0, max_full);
+    println!(
+        "  50.0th Percentile (p50 / Median):   {:>6.3} us  ({:>5} ns)",
+        p50_full as f64 / 1000.0,
+        p50_full
+    );
+    println!(
+        "  90.0th Percentile (p90):            {:>6.3} us  ({:>5} ns)",
+        p90_full as f64 / 1000.0,
+        p90_full
+    );
+    println!(
+        "  99.0th Percentile (p99):            {:>6.3} us  ({:>5} ns)",
+        p99_full as f64 / 1000.0,
+        p99_full
+    );
+    println!(
+        "  99.9th Percentile (p99.9):          {:>6.3} us  ({:>5} ns)",
+        p999_full as f64 / 1000.0,
+        p999_full
+    );
+    println!(
+        "  Maximum Observed Jitter (Max):      {:>6.3} us  ({:>5} ns)",
+        max_full as f64 / 1000.0,
+        max_full
+    );
     println!("--------------------------------------------------------------------------------");
     println!();
 

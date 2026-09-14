@@ -10,8 +10,8 @@
 //! - Direct synthesis into `core_engine::ContiguousOrderBook`.
 //! - Zero heap allocations during book re-computation.
 
-use core_engine::{ContiguousOrderBook, PRICE_LEVELS_COUNT, TICK_SIZE};
 use crate::ConcentratedTick;
+use core_engine::{ContiguousOrderBook, PRICE_LEVELS_COUNT, TICK_SIZE};
 
 /// Uniswap v4 Dynamic Fee Flag (Bit 23 of 24-bit fee)
 pub const DYNAMIC_FEE_FLAG: u32 = 0x80_0000;
@@ -185,7 +185,11 @@ impl UniswapV4Pool {
 
         // 2. Bids (Buying Base with Quote below current tick)
         let mut bid_liquidity = self.current_liquidity;
-        for tick in ticks.iter().filter(|t| t.tick_index <= self.current_tick).rev() {
+        for tick in ticks
+            .iter()
+            .filter(|t| t.tick_index <= self.current_tick)
+            .rev()
+        {
             let tick_distance = (self.current_tick - tick.tick_index) as i64;
             let price_step = spot.saturating_sub(tick_distance * 100);
 
@@ -258,9 +262,21 @@ mod tests {
 
         let mut book = ContiguousOrderBook::new(200_000_000_000); // Base $2,000
         let ticks = [
-            ConcentratedTick { tick_index: 90, liquidity_gross: 5_000_000_000, liquidity_net: -5_000_000_000 },
-            ConcentratedTick { tick_index: 100, liquidity_gross: 10_000_000_000, liquidity_net: 10_000_000_000 },
-            ConcentratedTick { tick_index: 110, liquidity_gross: 5_000_000_000, liquidity_net: -5_000_000_000 },
+            ConcentratedTick {
+                tick_index: 90,
+                liquidity_gross: 5_000_000_000,
+                liquidity_net: -5_000_000_000,
+            },
+            ConcentratedTick {
+                tick_index: 100,
+                liquidity_gross: 10_000_000_000,
+                liquidity_net: 10_000_000_000,
+            },
+            ConcentratedTick {
+                tick_index: 110,
+                liquidity_gross: 5_000_000_000,
+                liquidity_net: -5_000_000_000,
+            },
         ];
 
         pool.populate_virtual_order_book(&mut book, &ticks, 1234567);

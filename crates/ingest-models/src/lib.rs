@@ -73,12 +73,12 @@ pub struct NormalizedBbo {
     pub venue: u16,
     pub chain: u16,
     pub sequence: u64,
-    pub bid_price: i64,  // Scaled 10^8
-    pub bid_qty: u64,    // Scaled 10^8
-    pub ask_price: i64,  // Scaled 10^8
-    pub ask_qty: u64,    // Scaled 10^8
+    pub bid_price: i64, // Scaled 10^8
+    pub bid_qty: u64,   // Scaled 10^8
+    pub ask_price: i64, // Scaled 10^8
+    pub ask_qty: u64,   // Scaled 10^8
     pub spread_bps: u16,
-    pub flags: u16,      // 0x01 = Synthetic AMM, 0x02 = Mempool Inferred
+    pub flags: u16, // 0x01 = Synthetic AMM, 0x02 = Mempool Inferred
 }
 
 /// Unified Trade Execution (CeFi Match or AMM Swap)
@@ -91,8 +91,8 @@ pub struct UnifiedTrade {
     pub chain: u16,
     pub sequence: u64,
     pub trade_id: u64,
-    pub price: i64,      // Scaled 10^8
-    pub size: u64,       // Scaled 10^8
+    pub price: i64, // Scaled 10^8
+    pub size: u64,  // Scaled 10^8
     pub side: u8,
     pub is_liquidation: bool,
 }

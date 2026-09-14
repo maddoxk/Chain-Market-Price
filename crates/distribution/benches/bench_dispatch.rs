@@ -187,11 +187,7 @@ fn main() {
         const ROUTE_ITERS: usize = 100_000;
         let start = Instant::now();
         for _ in 0..ROUTE_ITERS {
-            let metrics = router.dispatch_bbo(
-                &bbo,
-                0,
-                |_id, _proto, _payload| {},
-            );
+            let metrics = router.dispatch_bbo(&bbo, 0, |_id, _proto, _payload| {});
             black_box(metrics);
         }
         let elapsed = start.elapsed();

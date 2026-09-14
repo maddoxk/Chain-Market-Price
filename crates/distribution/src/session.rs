@@ -3,9 +3,9 @@
 //! Encapsulates per-client session lifecycle, wire protocol negotiation (SBE / JSON),
 //! dynamic filter predicate configuration, lock-free rate limiting, and ping/pong heartbeat tracking.
 
+use crate::{ClientFilterPredicate, LockFreeTokenBucket};
 use std::sync::atomic::{AtomicU64, AtomicU8, Ordering};
 use std::sync::RwLock;
-use crate::{ClientFilterPredicate, LockFreeTokenBucket};
 
 /// Client negotiated wire protocol encoding
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
