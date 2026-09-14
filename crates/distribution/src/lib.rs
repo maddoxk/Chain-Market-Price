@@ -1,11 +1,39 @@
 //! # Distribution & Fan-Out Egress Layer
 //!
-//! Provides ultra-low latency client fan-out primitives:
-//! - 64-bit Topic Key packing for branchless dispatch.
-//! - Lock-free token bucket rate limiting using single-word 64-bit CAS.
-//! - Dynamic filter predicate definitions.
+//! Institutional High-Frequency Trading client distribution layer providing:
+//! - 64-bit Topic Key packing for branchless subscription multiplexing.
+//! - Cache-aligned Roaring-style Inverted Client Bitmap indexing (`ClientBitmap`).
+//! - Lock-free token bucket rate limiting using single-word 64-bit CAS (`LockFreeTokenBucket`).
+//! - Dynamic SIMD-accelerated predicate filtering (`ClientFilterPredicate`).
+//! - Simple Binary Encoding (SBE) zero-copy message framing (`sbe`).
+//! - Zero-heap, ultra-fast JSON serialization (`fast_json`).
+//! - High-density RFC 6455 WebSocket engine with vectorized unmasking (`websocket`).
+
+pub mod bitmap;
+pub mod fast_json;
+pub mod router;
+pub mod sbe;
+pub mod session;
+pub mod websocket;
 
 use std::sync::atomic::{AtomicU64, Ordering};
+
+pub use bitmap::ClientBitmap;
+pub use fast_json::{serialize_bbo_json, serialize_trade_json, FastJsonWriter, JsonError};
+pub use router::{
+    DispatchMetrics, InvertedTopicRouter, RouterError, STREAM_TYPE_BBO, STREAM_TYPE_DEPTH,
+    STREAM_TYPE_MEMPOOL, STREAM_TYPE_TRADE,
+};
+pub use sbe::{
+    decode_bbo_sbe, decode_trade_sbe, encode_bbo_sbe, encode_trade_sbe, SbeError, SbeMessageHeader,
+    BLOCK_LENGTH_BBO, BLOCK_LENGTH_TRADE, SBE_HEADER_LEN, SBE_SCHEMA_ID, SBE_SCHEMA_VERSION,
+    TEMPLATE_ID_BBO, TEMPLATE_ID_TRADE, TOTAL_SBE_BBO_LEN, TOTAL_SBE_TRADE_LEN,
+};
+pub use session::{ClientSession, SessionState, WireProtocol};
+pub use websocket::{
+    decode_ws_frame_header, encode_ws_frame, unmask_payload, ClientCommand, WebSocketServerEngine,
+    WsError, WsFrameHeader, WsOpcode,
+};
 
 /// Compact 64-bit Topic Key
 /// Layout:
@@ -40,11 +68,16 @@ impl TopicKey {
     pub fn stream_type(&self) -> u8 {
         ((self.0 >> 24) & 0xFF) as u8
     }
+
+    #[inline(always)]
+    pub fn flags(&self) -> u32 {
+        (self.0 & 0x00FF_FFFF) as u32
+    }
 }
 
 /// Client Filter Predicate for Dynamic Subscription Filtering
 #[repr(C, align(32))]
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct ClientFilterPredicate {
     pub min_notional_usd: f64,
     pub max_spread_bps: u32,
@@ -126,10 +159,11 @@ mod tests {
 
     #[test]
     fn test_topic_key_packing() {
-        let topic = TopicKey::new(1, 42, 2, 0);
+        let topic = TopicKey::new(1, 42, 2, 0x01);
         assert_eq!(topic.venue_id(), 1);
         assert_eq!(topic.market_id(), 42);
         assert_eq!(topic.stream_type(), 2);
+        assert_eq!(topic.flags(), 0x01);
     }
 
     #[test]
