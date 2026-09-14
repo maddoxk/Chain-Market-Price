@@ -56,7 +56,8 @@ fn main() {
             nanos_per_op,
             1_000.0 / nanos_per_op
         );
-        assert!(nanos_per_op < 1000.0, "Target sub-microsecond SLA");
+        let max_sla = if cfg!(debug_assertions) { 5_000.0 } else { 1_000.0 };
+        assert!(nanos_per_op < max_sla, "Target SLA exceeded");
     }
 
     // 2. SBE Trade Serialization Benchmark
@@ -86,7 +87,8 @@ fn main() {
             nanos_per_op,
             1_000.0 / nanos_per_op
         );
-        assert!(nanos_per_op < 1000.0, "Target sub-microsecond SLA");
+        let max_sla = if cfg!(debug_assertions) { 5_000.0 } else { 1_000.0 };
+        assert!(nanos_per_op < max_sla, "Target SLA exceeded");
     }
 
     // 3. Fast Zero-Allocation JSON BBO Serialization Benchmark
@@ -122,7 +124,8 @@ fn main() {
             nanos_per_op,
             1_000.0 / nanos_per_op
         );
-        assert!(nanos_per_op < 1000.0, "Target sub-microsecond SLA");
+        let max_sla = if cfg!(debug_assertions) { 5_000.0 } else { 1_000.0 };
+        assert!(nanos_per_op < max_sla, "Target SLA exceeded");
     }
 
     // 4. Fast Zero-Allocation JSON Trade Serialization Benchmark
@@ -152,7 +155,8 @@ fn main() {
             nanos_per_op,
             1_000.0 / nanos_per_op
         );
-        assert!(nanos_per_op < 1000.0, "Target sub-microsecond SLA");
+        let max_sla = if cfg!(debug_assertions) { 5_000.0 } else { 1_000.0 };
+        assert!(nanos_per_op < max_sla, "Target SLA exceeded");
     }
 
     // 5. Inverted Topic Router Fan-Out Benchmark (100 concurrent clients)
