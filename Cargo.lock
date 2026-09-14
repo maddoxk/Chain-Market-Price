@@ -3,6 +3,22 @@
 version = 3
 
 [[package]]
+name = "amm-virtualizer"
+version = "0.1.0"
+dependencies = [
+ "core-engine",
+ "ingest-models",
+]
+
+[[package]]
+name = "cefi-ingest"
+version = "0.1.0"
+dependencies = [
+ "core-engine",
+ "ingest-models",
+]
+
+[[package]]
 name = "core-engine"
 version = "0.1.0"
 
@@ -17,3 +33,12 @@ dependencies = [
 [[package]]
 name = "ingest-models"
 version = "0.1.0"
+
+[[package]]
+name = "onchain-ingest"
+version = "0.1.0"
+dependencies = [
+ "amm-virtualizer",
+ "core-engine",
+ "ingest-models",
+]

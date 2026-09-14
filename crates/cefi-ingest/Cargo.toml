@@ -1,17 +1,8 @@
 [package]
-name = "distribution"
+name = "cefi-ingest"
 version = "0.1.0"
 edition = "2018"
 
 [dependencies]
 core-engine = { path = "../core-engine" }
 ingest-models = { path = "../ingest-models" }
-
-[[example]]
-name = "bot_client"
-path = "../../examples/bot_client.rs"
-
-
-[[bench]]
-name = "bench_dispatch"
-harness = false

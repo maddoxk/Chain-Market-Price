@@ -3,6 +3,9 @@ members = [
     "crates/core-engine",
     "crates/ingest-models",
     "crates/distribution",
+    "crates/cefi-ingest",
+    "crates/amm-virtualizer",
+    "crates/onchain-ingest",
 ]
 
 [profile.release]

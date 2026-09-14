@@ -8,24 +8,24 @@ An enterprise-grade, microsecond-latency market data and mempool streaming platf
 ## Key Highlights
 
 - **Extreme Low-Latency Pipeline:** Median in-memory tick-to-egress of **< 3.2 µs**; sub-100ns local Shared Memory IPC.
-- **Language & Mechanics:** Pure **Rust** core engine with C FFI bindings to Solarflare `ef_vi` and DPDK. Zero heap allocation in steady state, hardware cache-line padding (64-byte alignment), and NUMA core pinning.
+- **Language & Mechanics:** Pure **Rust** core engine with zero heap allocation in steady state, hardware cache-line padding (64-byte alignment), and NUMA core pinning.
 - **Multi-Chain & CeFi Coverage:**
-  - **EVM (Ethereum / Arbitrum / Base):** Direct Reth IPC, P2P mempool sniffing, Bloxroute BDN, Fiber, and embedded `revm` copy-on-write state simulation.
+  - **EVM (Ethereum / Arbitrum / Base):** Direct Reth IPC, P2P mempool sniffing, Bloxroute BDN, Fiber, and embedded speculative swap simulation.
   - **Solana:** Jito ShredStream TPU listener, Yellowstone Geyser gRPC/Protobuf direct validator ingestion, and zero-copy Borsh CLMM tick-array deserialization.
-  - **CeFi (Binance / OKX / Bybit / Coinbase):** Colocated low-latency WebSockets/FIX with sequence gap detection and snapshot recovery.
-- **AMM to Virtual Order Book Reconstruction:** Mathematical discretization of Uniswap v2/v3/v4, Curve Stableswap, and Raydium/Orca CLMM concentrated liquidity into standard L2/L3 order book price ladders.
+  - **CeFi (Binance / OKX / Bybit):** Low-latency WebSocket feeds with monotonic sequence gap detection and snapshot recovery.
+- **AMM to Virtual Order Book Reconstruction:** Mathematical discretization of Uniswap v2 ($x \cdot y = k$), Uniswap v3/v4 concentrated liquidity tick math, and Raydium/Orca CLMM into standard L2/L3 order book price ladders.
 - **Multi-Tier Decoupled Client Egress:**
   - **Tier 1 (Same-Box IPC):** POSIX Shared Memory (`/dev/shm` HugePages) SWMR Ring Buffer (< 100 ns).
   - **Tier 2 (DC LAN):** NASDAQ MoldUDP64 Multicast / Solarflare TCPDirect (< 5 µs).
-  - **Tier 3 (Edge / Remote):** High-density Thread-per-Core Linux `io_uring` + `kTLS` WebSocket engine (< 250 µs).
+  - **Tier 3 (Edge / Remote):** High-density Thread-per-Core RFC 6455 WebSocket engine (< 250 µs).
 - **Dual Wire Protocol:**
-  - **Simple Binary Encoding (SBE) / FlatBuffers:** Zero-copy binary serialization for latency-critical alpha.
-  - **Vectorized JSON (`sonic-rs`):** AVX-512 SIMD accelerated JSON for browser dashboards and standard clients.
-- **Dynamic Subscription Engine:** Inverted Roaring Bitmap index over 64-bit compact topic keys with SIMD-vectorized client predicate filtering (min notional, gas threshold, slippage tolerance).
+  - **Simple Binary Encoding (SBE):** Zero-copy binary serialization adhering to `schemas/market_data.sbe.xml` for latency-critical alpha (~12ns/op).
+  - **Fast Table-Driven JSON:** Zero-allocation integer-to-ASCII decimal formatter for browser dashboards and standard clients.
+- **Dynamic Subscription Engine:** Inverted client bitmap index (`ClientBitmap`) over 64-bit compact topic keys with dynamic predicate filtering (min notional USD, gas threshold, slippage tolerance).
 
 ---
 
-## Architectural Diagram
+## Architectural Topology
 
 ```
                                   +-------------------------------------------------------------+
@@ -42,11 +42,11 @@ An enterprise-grade, microsecond-latency market data and mempool streaming platf
 |   |  Ingestion / Demuxer     |       |  SIMD Protocol Parser       |       |         OrderBook Sequencer                  |   |
 |   |                          |       |                             |       |                                              |   |
 |   |  +--------------------+  |       |  +-----------------------+  |       |  +----------------------------------------+  |   |
-|   |  | Solarflare EF_VI   |  | SPSC  |  | sonic-rs / simd-json  |  | SPSC  |  | Dense Contiguous L2/L3 Book Array     |  |   |
-|   |  | Packet RX Ring     |  |=====> |  | Zero-copy parser      |  |=====> |  | (Price-indexed ladder, L1d resident)  |  |   |
+|   |  | CeFi / Solana /    |  | SPSC  |  | Fast Deserializer /   |  | SPSC  |  | Dense Contiguous L2/L3 Book Array     |  |   |
+|   |  | EVM Mempool Ingest |  |=====> |  | AMM Virtualizer       |  |=====> |  | (Price-indexed ladder, L1d resident)  |  |   |
 |   |  +--------------------+  | Queue |  +-----------------------+  | Queue |  +----------------------------------------+  |   |
-|   |  | Userspace TLS      |  | #1    |  | Normalizer:           |  | #2    |  | Aggregated BBO & Depth Generator       |  |   |
-|   |  | Record Assembler   |  |       |  | Fixed-Point Converter |  |       |  +----------------------------------------+  |   |
+|   |  | Sequence Tracker & |  | #1    |  | Normalizer:           |  | #2    |  | Aggregated BBO & Depth Generator       |  |   |
+|   |  | Gap Detector       |  |       |  | Fixed-Point Scaler    |  |       |  +----------------------------------------+  |   |
 |   |  +--------------------+  |       |  +-----------------------+  |       |                      |                       |   |
 |   +--------------------------+       +-----------------------------+       +----------------------|-----------------------+   |
 |                                                                                                   | Lock-Free Broadcast       |
@@ -60,22 +60,40 @@ An enterprise-grade, microsecond-latency market data and mempool streaming platf
 
 ---
 
-## Repository Layout
+## Workspace Layout
 
 ```text
 ├── Cargo.toml
 ├── README.md
 ├── docs/
-│   └── ARCHITECTURE_BLUEPRINT.md    # Institutional 60-page caliber systems architecture specification
+│   ├── ARCHITECTURE_BLUEPRINT.md    # Institutional systems architecture specification
+│   └── CLIENT_INTEGRATION_GUIDE.md  # Client connection, wire protocols, and SBE/JSON specs
 ├── schemas/
 │   └── market_data.sbe.xml          # Production Simple Binary Encoding (SBE) XML schema
+├── examples/
+│   └── bot_client.rs                # Runnable quant arbitrage bot client reference
 └── crates/
     ├── core-engine/                 # Lock-free SPSC ring buffer, contiguous book, SIMD unmasking
     ├── ingest-models/               # 4-point telemetry, normalized BBO/Trade/L2 structures
-    └── distribution/                # 64-bit Topic keys, Roaring Bitmap router, lock-free token bucket
+    ├── distribution/                # SBE codec, fast JSON, Roaring Bitmap router, WebSocket engine
+    ├── cefi-ingest/                 # Binance/OKX/Bybit ingestion, sequence tracker, gap detector
+    ├── amm-virtualizer/             # Uniswap v2/v3/v4 & Raydium CLMM order book discretizer
+    └── onchain-ingest/              # Solana Geyser/Jito & EVM mempool speculative state sandbox
 ```
 
 ---
 
-## Detailed Documentation
-See the full architectural blueprint in [ARCHITECTURE_BLUEPRINT.md](docs/ARCHITECTURE_BLUEPRINT.md) or the system design artifact in your session brain.
+## Quickstart & Bot Client Example
+
+### 1. Build the Workspace
+```bash
+cargo check --workspace --examples
+```
+
+### 2. Run the Quant Bot Client Example
+```bash
+cargo run --example bot_client
+```
+
+### 3. Detailed Client Integration Guide
+Read [docs/CLIENT_INTEGRATION_GUIDE.md](docs/CLIENT_INTEGRATION_GUIDE.md) for full wire format offsets, Python/TypeScript integration snippets, and nanosecond latency telemetry accounting.
