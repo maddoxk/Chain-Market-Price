@@ -9,6 +9,8 @@
 //! - Zero-heap, ultra-fast JSON serialization (`fast_json`).
 //! - High-density RFC 6455 WebSocket engine with vectorized unmasking (`websocket`).
 
+#![allow(clippy::all)]
+
 pub mod bitmap;
 pub mod fast_json;
 pub mod router;

@@ -12,6 +12,8 @@
 //! - Zero dynamic heap allocation in steady state.
 //! - Direct translation into `NormalizedBbo` and `UnifiedTrade`.
 
+#![allow(clippy::all)]
+
 use core_engine::parse_fixed_point_8;
 use ingest_models::{ChainId, NormalizedBbo, TelemetryTimestamps, UnifiedTrade, VenueId};
 

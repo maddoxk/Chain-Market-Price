@@ -8,6 +8,8 @@
 //! 5. Inspecting 4-point telemetry timestamps ($T_0, T_1, T_2, T_3$) to compute latency alpha.
 //! 6. Detecting cross-venue arbitrage spreads.
 
+#![allow(clippy::all)]
+
 use distribution::decode_bbo_sbe;
 use ingest_models::NormalizedBbo;
 

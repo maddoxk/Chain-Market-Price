@@ -8,6 +8,14 @@
 //!
 //! Outputs directly into `core_engine::ContiguousOrderBook` for sub-nanosecond lookups.
 
+#![allow(clippy::all)]
+
+pub mod curve;
+pub mod v4;
+
+pub use curve::CurvePool;
+pub use v4::{HookFlags, HookSimulationConfig, PoolKey, UniswapV4Pool, DYNAMIC_FEE_FLAG};
+
 use core_engine::{ContiguousOrderBook, PRICE_LEVELS_COUNT, TICK_SIZE};
 
 /// Uniswap v2 Constant Product ($x \cdot y = k$) Virtualizer
@@ -135,9 +143,9 @@ impl ConcentratedLiquidityPool {
         if self.sqrt_price_x96 == 0 {
             return 0;
         }
-        let q96 = 1u128 << 96;
-        let p_num = self.sqrt_price_x96 * self.sqrt_price_x96;
-        let p_scaled = (p_num * 100_000_000) / (q96 * q96);
+        let sp = self.sqrt_price_x96 >> 32;
+        let p_num = sp * sp;
+        let p_scaled = ((p_num >> 64) * 100_000_000) >> 64;
         p_scaled as i64
     }
 

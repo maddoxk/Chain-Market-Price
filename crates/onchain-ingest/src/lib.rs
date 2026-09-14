@@ -5,6 +5,8 @@
 //! - **EVM Reth IPC & P2P Mempool**: Unconfirmed transaction sniffing and pending state diff analysis.
 //! - **Speculative Swap Sandbox**: Predicts DEX pool price impacts 200–400ms before block inclusion.
 
+#![allow(clippy::all)]
+
 use amm_virtualizer::UniswapV2Pool;
 use ingest_models::{ChainId, NormalizedBbo, TelemetryTimestamps, VenueId};
 
