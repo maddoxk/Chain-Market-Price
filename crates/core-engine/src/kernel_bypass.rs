@@ -294,7 +294,7 @@ impl<const N: usize> KernelBypassBridge<N> {
     }
 
     /// Zero-copy, zero-syscall packet burst poll.
-    //!
+    ///
     /// Evaluates hardware completion ring directly via memory-mapped IO.
     /// Delivers packet payload slice and hardware IEEE 1588 nanosecond timestamp ($T_1$).
     #[inline(always)]

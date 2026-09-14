@@ -159,7 +159,7 @@ impl QueueMetrics {
 }
 
 /// Lock-Free Single-Producer Single-Consumer Isolated Consumer Queue
-//!
+///
 /// Implements configurable saturation drop policies so a slow or stalled
 /// consumer never blocks the producer or induces backpressure on peer consumers.
 pub struct IsolatedConsumerQueue<T, const N: usize> {
