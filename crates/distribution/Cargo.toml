@@ -15,3 +15,11 @@ path = "../../examples/bot_client.rs"
 [[bench]]
 name = "bench_dispatch"
 harness = false
+
+[[bench]]
+name = "tick_to_egress"
+harness = false
+path = "benches/tick_to_egress.rs"
+
+[dev-dependencies]
+cefi-ingest = { path = "../cefi-ingest" }
