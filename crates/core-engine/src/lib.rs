@@ -6,8 +6,22 @@
 //! - Ultra-fast zero-allocation fixed-point scaler.
 //! - Vectorized WebSocket unmasking routine.
 
+#![allow(
+    clippy::result_unit_err,
+    clippy::new_without_default,
+    clippy::derivable_impls,
+    clippy::needless_range_loop,
+    clippy::manual_range_contains,
+    clippy::inconsistent_digit_grouping
+)]
+
+pub mod kernel_bypass;
 pub mod simulator;
 
+pub use kernel_bypass::{
+    BypassBackendKind, BypassConfig, BypassMetrics, DmaBufferPool, HwTimestampNs,
+    KernelBypassBridge, PacketDescriptor, DEFAULT_RING_CAPACITY, MAX_FRAME_SIZE,
+};
 pub use simulator::{
     FastPrng, FeedBurstConfig, FeedEventKind, IsolatedConsumerQueue, MockExchangeFeedSimulator,
     PushResult, QueueMetrics, SaturationDropPolicy, SimulatedFeedEvent, SimulatedVenue,
