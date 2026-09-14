@@ -65,14 +65,12 @@ struct alignas(32) TelemetryTimestamps {
 struct alignas(64) ShmMessageSlot {
     uint64_t sequence;
     uint8_t kind;             // 1 = BBO, 2 = Trade, 3 = Heartbeat
-    uint8_t reserved1;
+    uint8_t flags;
     uint16_t venue_id;
     uint32_t market_id;
     TelemetryTimestamps telemetry;
     int64_t price;            // Scaled 10^8
     uint64_t qty;             // Scaled 10^8
-    uint16_t flags;
-    uint8_t padding[6];
 };
 
 static_assert(sizeof(ShmMessageSlot) == 64, "ShmMessageSlot must be exactly 64 bytes");

@@ -45,8 +45,8 @@ pub struct ShmMessageSlot {
     pub sequence: u64,
     /// Message type tag
     pub kind: u8,
-    /// Reserved alignment byte
-    pub _reserved1: u8,
+    /// Sub-flags (synthetic, mempool inferred, liquidation)
+    pub flags: u8,
     /// Market Venue ID
     pub venue_id: u16,
     /// Unique Market ID
@@ -57,10 +57,6 @@ pub struct ShmMessageSlot {
     pub price: i64,
     /// Scaled 10^8 Quantity
     pub qty: u64,
-    /// Sub-flags (synthetic, mempool inferred, liquidation)
-    pub flags: u16,
-    /// Explicit padding to ensure struct fills exactly 64 bytes
-    pub _padding: [u8; 6],
 }
 
 /// Header describing the active Shared Memory Layout
@@ -130,7 +126,7 @@ impl<const N: usize> ShmRingBuffer<N> {
         slot.telemetry = bbo.telemetry;
         slot.price = bbo.bid_price;
         slot.qty = bbo.bid_qty;
-        slot.flags = bbo.flags;
+        slot.flags = bbo.flags as u8;
         slot.sequence = next_seq;
 
         self.header

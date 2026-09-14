@@ -41,10 +41,10 @@ pub struct CachePadded<T>(pub T);
 /// Based on the LMAX Disruptor pattern with acquire-release memory fences.
 pub struct SpscRingBuffer<T, const N: usize> {
     producer_cursor: CachePadded<AtomicU64>,
-    cached_consumer_cursor: CachePadded<UnsafeCell<u64>>,
+    cached_consumer_cursor: CachePadded<AtomicU64>,
 
     consumer_cursor: CachePadded<AtomicU64>,
-    cached_producer_cursor: CachePadded<UnsafeCell<u64>>,
+    cached_producer_cursor: CachePadded<AtomicU64>,
 
     buffer: Box<[UnsafeCell<T>]>,
 }
@@ -66,9 +66,9 @@ impl<T: Copy + Default, const N: usize> SpscRingBuffer<T, N> {
 
         Self {
             producer_cursor: CachePadded(AtomicU64::new(0)),
-            cached_consumer_cursor: CachePadded(UnsafeCell::new(0)),
+            cached_consumer_cursor: CachePadded(AtomicU64::new(0)),
             consumer_cursor: CachePadded(AtomicU64::new(0)),
-            cached_producer_cursor: CachePadded(UnsafeCell::new(0)),
+            cached_producer_cursor: CachePadded(AtomicU64::new(0)),
             buffer,
         }
     }
@@ -77,12 +77,14 @@ impl<T: Copy + Default, const N: usize> SpscRingBuffer<T, N> {
     #[inline(always)]
     pub fn try_push(&self, item: T) -> Result<(), ()> {
         let current_head = self.producer_cursor.0.load(Ordering::Relaxed);
-        let cached_tail = unsafe { *self.cached_consumer_cursor.0.get() };
+        let cached_tail = self.cached_consumer_cursor.0.load(Ordering::Relaxed);
 
         // Check if buffer is full using cached consumer sequence
         if current_head >= cached_tail + N as u64 {
             let actual_tail = self.consumer_cursor.0.load(Ordering::Acquire);
-            unsafe { *self.cached_consumer_cursor.0.get() = actual_tail };
+            self.cached_consumer_cursor
+                .0
+                .store(actual_tail, Ordering::Relaxed);
             if current_head >= actual_tail + N as u64 {
                 return Err(()); // Buffer Full
             }
@@ -104,11 +106,13 @@ impl<T: Copy + Default, const N: usize> SpscRingBuffer<T, N> {
     #[inline(always)]
     pub fn try_pop(&self) -> Option<T> {
         let current_tail = self.consumer_cursor.0.load(Ordering::Relaxed);
-        let cached_head = unsafe { *self.cached_producer_cursor.0.get() };
+        let cached_head = self.cached_producer_cursor.0.load(Ordering::Relaxed);
 
         if current_tail >= cached_head {
             let actual_head = self.producer_cursor.0.load(Ordering::Acquire);
-            unsafe { *self.cached_producer_cursor.0.get() = actual_head };
+            self.cached_producer_cursor
+                .0
+                .store(actual_head, Ordering::Relaxed);
             if current_tail >= actual_head {
                 return None; // Buffer Empty
             }
@@ -268,7 +272,13 @@ impl ContiguousOrderBook {
 pub fn parse_fixed_point_8(val: &[u8]) -> i64 {
     let mut result: i64 = 0;
     let mut decimal_places: i32 = -1;
+    let mut is_negative = false;
     let mut i = 0;
+
+    if !val.is_empty() && val[0] == b'-' {
+        is_negative = true;
+        i = 1;
+    }
 
     while i < val.len() {
         let byte = val[i];
@@ -292,7 +302,16 @@ pub fn parse_fixed_point_8(val: &[u8]) -> i64 {
         result *= 10;
         shift -= 1;
     }
-    result
+    while shift < 0 {
+        result /= 10;
+        shift += 1;
+    }
+
+    if is_negative {
+        -result
+    } else {
+        result
+    }
 }
 
 #[cfg(test)]

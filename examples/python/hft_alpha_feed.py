@@ -24,9 +24,9 @@ DEFAULT_SHM_PATH = "/dev/shm/cmp_market_data.shm"
 HEADER_FORMAT = "<IIIIIIQQ"
 HEADER_SIZE = struct.calcsize(HEADER_FORMAT)  # 40 bytes (aligned to 64 in memory)
 
-# ShmMessageSlot: sequence(u64), kind(u8), reserved(u8), venue_id(u16), market_id(u32),
-#                 telemetry(4 * u64 = 32 bytes), price(i64), qty(u64), flags(u16), padding(6 bytes) = 64 bytes
-SLOT_FORMAT = "<QBBHIQQQQqqH6s"
+# ShmMessageSlot: sequence(u64), kind(u8), flags(u8), venue_id(u16), market_id(u32),
+#                 telemetry(4 * u64 = 32 bytes), price(i64), qty(u64) = 64 bytes
+SLOT_FORMAT = "<QBBHIQQQQqq"
 SLOT_SIZE = 64
 
 
@@ -108,7 +108,7 @@ class ShmFeedReader:
         slot_offset = 64 + (slot_idx * SLOT_SIZE)
 
         data = struct.unpack_from(SLOT_FORMAT, self._mm, slot_offset)
-        seq, kind, _, venue_id, market_id, t0, t1, t2, t3, price_raw, qty_raw, flags, _ = data
+        seq, kind, flags, venue_id, market_id, t0, t1, t2, t3, price_raw, qty_raw = data
 
         if seq != next_cursor:
             self.reader_cursor = head_seq
