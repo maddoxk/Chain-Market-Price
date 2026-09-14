@@ -16,7 +16,13 @@ pub mod fast_json;
 pub mod router;
 pub mod sbe;
 pub mod session;
+pub mod shm;
 pub mod websocket;
+
+pub use shm::{
+    ShmHeader, ShmMessageSlot, ShmMsgKind, ShmReadStatus, ShmRingBuffer, DEFAULT_SHM_PATH,
+    DEFAULT_SHM_SLOTS, SHM_MAGIC, SHM_VERSION,
+};
 
 use std::sync::atomic::{AtomicU64, Ordering};
 
