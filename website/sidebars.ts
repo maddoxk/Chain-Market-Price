@@ -67,6 +67,8 @@ const sidebars: SidebarsConfig = {
         'ops/kernel-tuning',
         'ops/systemd-service',
         'ops/preflight-validation',
+        'ops/cloud-deployment',
+        'ops/hardware-profiling-cli',
       ],
     },
     {

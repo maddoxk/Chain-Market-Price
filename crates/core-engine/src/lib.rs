@@ -15,11 +15,14 @@
     clippy::inconsistent_digit_grouping
 )]
 
+pub mod health;
 pub mod kernel_bypass;
 pub mod scheduler;
 pub mod simulator;
 pub mod sync;
 pub mod topology;
+
+pub use health::{HealthServer, HealthStatus};
 
 pub use kernel_bypass::{
     BypassBackendKind, BypassConfig, BypassMetrics, DmaBufferPool, HwTimestampNs,

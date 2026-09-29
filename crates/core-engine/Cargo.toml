@@ -9,3 +9,7 @@ ingest-models = { path = "../ingest-models" }
 [[example]]
 name = "feed_simulator"
 path = "examples/feed_simulator.rs"
+
+[[bin]]
+name = "cmp-calibrate"
+path = "src/bin/cmp_calibrate.rs"

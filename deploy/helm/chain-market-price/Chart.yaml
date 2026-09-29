@@ -1,0 +1,16 @@
+apiVersion: v2
+name: chain-market-price
+description: Enterprise Ultra-Low-Latency Crypto Market Data & Normalization Engine
+type: application
+version: 1.0.0
+appVersion: 1.0.0
+keywords:
+  - hft
+  - crypto
+  - market-data
+  - low-latency
+  - order-book
+  - arbitrage
+home: https://github.com/maddoxk/Chain-Market-Price
+maintainers:
+  - name: maddoxk

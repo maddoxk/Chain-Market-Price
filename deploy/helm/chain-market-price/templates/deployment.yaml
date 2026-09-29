@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chain-market-price.fullname" . }}
+  labels:
+    {{- include "chain-market-price.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "chain-market-price.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "chain-market-price.selectorLabels" . | nindent 8 }}
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: CMP_HARDWARE_PROFILE
+              value: {{ .Values.hardware.tier | quote }}
+            - name: RUST_LOG
+              value: "info"
+          ports:
+            - name: http-probes
+              containerPort: {{ .Values.service.ports.http }}
+              protocol: TCP
+            - name: distribution
+              containerPort: {{ .Values.service.ports.distribution }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.probes.liveness | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.probes.readiness | nindent 12 }}
+          resources:
+            {{- if eq .Values.profile "development" }}
+            {{- toYaml .Values.resources.development | nindent 12 }}
+            {{- else if eq .Values.profile "baremetal-colocation" }}
+            {{- toYaml .Values.resources.baremetal | nindent 12 }}
+            {{- else }}
+            {{- toYaml .Values.resources.cloud | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            {{- if .Values.shm.enabled }}
+            - name: dshm
+              mountPath: /dev/shm
+            {{- end }}
+            - name: config-volume
+              mountPath: /app/config
+      volumes:
+        {{- if .Values.shm.enabled }}
+        - name: dshm
+          emptyDir:
+            medium: {{ .Values.shm.medium | quote }}
+            sizeLimit: {{ .Values.shm.size | quote }}
+        {{- end }}
+        - name: config-volume
+          configMap:
+            name: {{ include "chain-market-price.fullname" . }}-config
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}

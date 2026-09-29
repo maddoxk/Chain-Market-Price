@@ -1,0 +1,109 @@
+# ==============================================================================
+# Chain-Market-Price Production Helm Configuration Values
+# ==============================================================================
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/maddoxk/chain-market-price
+  pullPolicy: IfNotPresent
+  tag: "1.0.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Operational profile preset: "development", "cloud", or "baremetal-colocation"
+profile: "cloud"
+
+hardware:
+  tier: "tier2" # tier1, tier2, or tier3
+  cgroupQuotaAware: true
+
+shm:
+  enabled: true
+  size: "1Gi"
+  medium: "Memory" # Mounts memory-backed tmpfs emptyDir at /dev/shm
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9001"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  ports:
+    http: 9001
+    distribution: 9002
+
+probes:
+  liveness:
+    httpGet:
+      path: /healthz
+      port: 9001
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  readiness:
+    httpGet:
+      path: /readyz
+      port: 9001
+    initialDelaySeconds: 2
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 2
+
+telemetry:
+  prometheus:
+    enabled: true
+    path: /metrics
+    port: 9001
+  serviceMonitor:
+    enabled: false
+    interval: 10s
+
+resources:
+  development:
+    requests:
+      cpu: "1000m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+  cloud:
+    requests:
+      cpu: "4000m"
+      memory: "4Gi"
+    limits:
+      cpu: "8000m"
+      memory: "8Gi"
+  baremetal:
+    requests:
+      cpu: "16000m"
+      memory: "32Gi"
+    limits:
+      cpu: "32000m"
+      memory: "64Gi"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
