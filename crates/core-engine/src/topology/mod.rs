@@ -348,8 +348,10 @@ impl HardwareProbe for SystemHardwareProbe {
         let mut physical_cores = logical_cores;
         #[allow(unused_mut)]
         let mut numa_nodes = 1;
+        #[allow(unused_mut)]
         let mut is_hybrid = false;
         let mut perf_cores = Vec::new();
+        #[allow(unused_mut)]
         let mut eff_cores = Vec::new();
         #[allow(unused_mut)]
         let mut has_invariant_tsc = false;
@@ -488,24 +490,26 @@ impl HardwareProbe for SystemHardwareProbe {
             }
 
             // Check non-fatal SCHED_FIFO privilege
-            let param = 1i32;
-            let res = unsafe {
-                libc::sched_setscheduler(
-                    0,
-                    libc::SCHED_FIFO,
-                    &param as *const _ as *const libc::sched_param,
-                )
-            };
+            #[repr(C)]
+            struct SchedParam {
+                sched_priority: i32,
+            }
+
+            extern "C" {
+                fn sched_setscheduler(pid: i32, policy: i32, param: *const SchedParam) -> i32;
+            }
+
+            const SCHED_OTHER: i32 = 0;
+            const SCHED_FIFO: i32 = 1;
+
+            let param = SchedParam { sched_priority: 1 };
+            let res = unsafe { sched_setscheduler(0, SCHED_FIFO, &param as *const _) };
             if res == 0 {
                 caps.has_sched_fifo = true;
                 // Restore standard round-robin scheduler
-                let zero = 0i32;
+                let zero = SchedParam { sched_priority: 0 };
                 unsafe {
-                    libc::sched_setscheduler(
-                        0,
-                        libc::SCHED_OTHER,
-                        &zero as *const _ as *const libc::sched_param,
-                    );
+                    sched_setscheduler(0, SCHED_OTHER, &zero as *const _);
                 }
             }
         }
