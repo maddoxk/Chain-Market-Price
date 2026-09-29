@@ -14,6 +14,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'architecture/mechanical-sympathy',
         'architecture/telemetry',
+        'architecture/hardware-scaling-matrix',
       ],
     },
     {
