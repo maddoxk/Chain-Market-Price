@@ -101,3 +101,36 @@ let mut strategy = DynamicWaitStrategy::for_tier(HardwareTier::Tier2CloudVirtual
 // Block adaptively until data arrives
 let item = ring.pop_blocking(&mut strategy);
 ```
+
+---
+
+## 5. Elastic Core Pinning & Dynamic Worker Multiplexing (`ElasticScheduler`)
+
+In colocation setups, pipeline stages must be pinned 1:1 to isolated cores (`isolcpus` + `nohz_full`). However, running 6-8 dedicated pinned threads on a 2-core laptop or inside a CPU-quota-constrained container (`cpu.max: 200000 100000`) causes catastrophic thread thrashing and latency freezes.
+
+`crates/core-engine/src/scheduler/` introduces dynamic topology adaptation:
+
+```rust
+use core_engine::scheduler::{ElasticScheduler, ExecutionTopologyPlan, PipelineStage};
+
+// Automatically plans topology based on available cores, bare-metal state, and cgroup limits
+let plan = ElasticScheduler::compute_plan(
+    available_cores,
+    is_bare_metal,
+    has_affinity_cap,
+    cgroup_quota_cores, // e.g. Some(2.0) inside Docker / Kubernetes
+);
+```
+
+### Execution Topologies by Hardware Tier
+
+1. **`DedicatedPinned` (Tier 3: Enterprise Bare Metal $\ge$ 8 cores):**
+   - 1:1 dedicated core pinning (`pthread_setaffinity_np`) and real-time FIFO priority (`SCHED_FIFO` 99).
+   - Core mapping: Ingestion (Core 1), Parser (Core 2), Sequencer (Core 3), SHM (Core 4), Network (Core 5), Telemetry (Core 6).
+2. **`GroupedAffinity` (Tier 2: Cloud Virtualized 4–7 vCPUs):**
+   - Merges adjacent pipeline stages into 3 balanced worker groups (`ingress_worker`, `engine_worker`, `distribution_worker`).
+   - Binds threads to distinct vCPUs without over-subscribing the hypervisor.
+3. **`CooperativeMultiplexed` (Tier 1: Workstations, macOS, or Containers $\le$ 2 cores):**
+   - Executes all pipeline stages cooperatively within a single or dual-threaded event loop (`step_cooperative`).
+   - Zero context-switch overhead; safe non-fatal affinity fallback on macOS / Darwin.
+

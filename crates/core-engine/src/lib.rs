@@ -16,6 +16,7 @@
 )]
 
 pub mod kernel_bypass;
+pub mod scheduler;
 pub mod simulator;
 pub mod sync;
 pub mod topology;
@@ -23,6 +24,10 @@ pub mod topology;
 pub use kernel_bypass::{
     BypassBackendKind, BypassConfig, BypassMetrics, DmaBufferPool, HwTimestampNs,
     KernelBypassBridge, PacketDescriptor, DEFAULT_RING_CAPACITY, MAX_FRAME_SIZE,
+};
+pub use scheduler::{
+    set_current_thread_affinity, set_realtime_priority, ElasticScheduler, ExecutionTopologyPlan,
+    PipelineStage, StepResult, WorkerGroup, WorkerRole,
 };
 pub use simulator::{
     FastPrng, FeedBurstConfig, FeedEventKind, IsolatedConsumerQueue, MockExchangeFeedSimulator,
