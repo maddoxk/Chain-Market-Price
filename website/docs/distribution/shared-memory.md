@@ -55,3 +55,44 @@ For institutional high-frequency trading (HFT) and statistical arbitrage strateg
    The writer writes payload fields first, then issues a `Release` fence to update `head_sequence`. Readers execute an optimistic `memcpy`, followed by a sequence parity check to detect concurrent overwrites.
 4. **Hardware Pause Instruction:**
    When the queue is empty, reader polling loops issue a CPU pause intrinsic (`_mm_pause()` on x86-64, `isb` on ARM64) to save power and prevent pipeline stalls upon new tick arrival.
+
+---
+
+## 3. Multi-Tier Elastic Shared Memory & Cascading Fallback
+
+To support heterogeneous hardware environments, `ElasticShmRing` automatically negotiates the storage backend and capacity:
+
+| Operational Tier | Storage Backend | Ring Capacity | Memory Footprint | Privilege Level |
+| :--- | :--- | :--- | :--- | :--- |
+| **Tier 3: Enterprise Bare Metal** | `HugeTLB` (2MB/1GB pages) | 65,536 slots | 4 MB contiguous pinned RAM | `CAP_IPC_LOCK` / HugePages mount |
+| **Tier 2: Cloud Virtualized** | `PosixShm` (`/dev/shm`) | 16,384 slots | 1 MB standard 4KB pages | Standard container unprivileged |
+| **Tier 1: Mid-Range Workstation** | `AnonymousOrTmpfs` (`/tmp`) | 4,096 slots | 256 KB temporary file | Completely unprivileged (macOS/Linux) |
+| **Safe Failover** | `InMemory` | Dynamic | RAM heap ring | Zero filesystem access required |
+
+### Automated Cascading Fallback State Machine
+
+```text
+Boot: Request SHM Ring
+         |
+         v
+[Stage 1: HugeTLB /dev/hugepages] -- (Failed: ENOMEM/EPERM/macOS) --> [Stage 2: POSIX SHM /dev/shm]
+                                                                               |
+                                                                               +-- (Failed: Container limit/ReadOnly) --> [Stage 3: tmpfs /tmp]
+                                                                                                                                 |
+                                                                                                                                 +-- (Failed) --> [Stage 4: In-Memory Safe Fallback]
+```
+
+### Usage Example
+
+```rust
+use distribution::shm::{ElasticShmConfig, ElasticShmRing};
+use core_engine::topology::HardwareTier;
+
+// Initialize optimal ring configuration based on detected hardware tier
+let config = ElasticShmConfig::for_tier(HardwareTier::Tier2CloudVirtualized);
+let mut ring = ElasticShmRing::create_or_fallback(config, std::process::id());
+
+// Publish normalized BBO tick
+ring.publish_bbo(&bbo, 1_000_000);
+```
+
