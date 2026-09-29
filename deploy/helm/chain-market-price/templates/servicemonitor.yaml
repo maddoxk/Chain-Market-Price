@@ -1,0 +1,16 @@
+{{- if .Values.telemetry.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "chain-market-price.fullname" . }}
+  labels:
+    {{- include "chain-market-price.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "chain-market-price.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http-probes
+      path: {{ .Values.telemetry.prometheus.path }}
+      interval: {{ .Values.telemetry.serviceMonitor.interval }}
+{{- end }}

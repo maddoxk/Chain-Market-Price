@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  chain-market-price:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    image: ghcr.io/maddoxk/chain-market-price:latest
+    container_name: cmp-node
+    restart: unless-stopped
+    shm_size: '512mb'
+    environment:
+      - CMP_HARDWARE_PROFILE=tier2
+      - RUST_LOG=info
+    ports:
+      - "9001:9001" # Health probes & Prometheus metrics
+      - "9002:9002" # High-throughput WebSocket / Distribution stream
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4096M
+        reservations:
+          cpus: '2.0'
+          memory: 2048M
