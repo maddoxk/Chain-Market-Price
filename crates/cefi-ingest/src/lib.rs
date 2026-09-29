@@ -14,6 +14,14 @@
 
 #![allow(clippy::all)]
 
+pub mod transport;
+
+pub use transport::{
+    IoUringTransport, MockNetworkTransport, NetworkTransport, SolarflareEfViTransport,
+    StandardSocketTransport, TimestampNs, TransportBackendKind, TransportConfig, TransportError,
+    TransportFactory, TransportStats,
+};
+
 use core_engine::parse_fixed_point_8;
 use ingest_models::{ChainId, NormalizedBbo, TelemetryTimestamps, UnifiedTrade, VenueId};
 

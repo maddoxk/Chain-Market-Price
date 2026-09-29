@@ -32,9 +32,52 @@ Standard Linux OS kernel network processing incurs socket buffer copying, interr
 
 ---
 
-## 3. Host Compatibility & Fallback Mode
+## 3. Modular Network Transport Layer (`NetworkTransport`)
 
-On development machines (e.g. macOS / Windows) or cloud instances lacking Solarflare Onload / DPDK PCIe devices, the engine automatically activates its high-performance POSIX fallback mode:
-- Resolves timestamps via hardware Time Stamp Counter (TSC).
-- Emulates packet arrival through memory-mapped SPSC queues.
-- Guarantees binary and structural compatibility across all platforms.
+In addition to bare-metal kernel bypass, the market data ingestion engine is abstracted behind the zero-cost polymorphic `NetworkTransport` trait in `cefi-ingest`:
+
+```rust
+pub trait NetworkTransport: Send {
+    fn poll_batch(
+        &mut self,
+        max_batch: usize,
+        handler: &mut dyn FnMut(&[u8], TimestampNs),
+    ) -> Result<usize, TransportError>;
+
+    fn stats(&self) -> TransportStats;
+    fn backend_kind(&self) -> TransportBackendKind;
+    fn is_active(&self) -> bool;
+    fn as_raw_fd(&self) -> Option<i32>;
+}
+```
+
+### Transport Backends by Hardware Tier
+
+| Transport Backend | Hardware Tier | Mechanism | Steady-State Syscalls | Throughput |
+| :--- | :--- | :--- | :--- | :--- |
+| **`SolarflareEfViTransport`** | **Tier 3 (Enterprise Bare Metal)** | Direct userspace MMIO & NIC DMA ring | **0** | > 12,000,000 pkts/s |
+| **`IoUringTransport`** | **Tier 2 (Cloud Virtualized)** | Batched SQ/CQ rings with pre-allocated buffer pools | **0 (with SQPOLL)** | ~3,500,000 pkts/s |
+| **`StandardSocketTransport`** | **Tier 1 (Mid-Range & Fallback)** | Non-blocking BSD UDP sockets (`epoll` / `kqueue`) | 1 per batch | ~500,000 pkts/s |
+| **`MockNetworkTransport`** | **Testing / Simulation** | Deterministic in-memory ring queue | 0 | In-Memory Bandwidth |
+
+---
+
+## 4. Hardware Auto-Negotiation (`TransportFactory`)
+
+At system startup, `TransportFactory::create_optimal_transport()` inspects the runtime hardware profile negotiated by `HardwareProbe` and dynamically instantiates the highest performing transport viable on the host:
+
+```rust
+let config = TransportConfig {
+    bind_addr: "0.0.0.0:12345".to_string(),
+    interface: "eth0".to_string(),
+    preferred_backend: None, // Auto-negotiate based on detected hardware
+    batch_size: 64,
+    enable_busy_poll: true,
+    ring_capacity: 2048,
+};
+
+let probe = SystemHardwareProbe::new();
+let mut transport = TransportFactory::create_optimal_transport(&config, &probe)?;
+println!("Active Transport Backend: {}", transport.backend_kind());
+```
+
