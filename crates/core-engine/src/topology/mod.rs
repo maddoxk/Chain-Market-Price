@@ -209,14 +209,11 @@ pub trait HardwareProbe: Send + Sync {
         {
             // Tier 3: Bare metal enterprise server with real-time capability and >= 16 cores
             HardwareTier::Tier3EnterpriseBareMetal
-        } else if hypervisor.is_virtualized()
-            || caps.cgroup_cpu_quota_us.is_some()
-            || (cpu.total_logical_cores >= 8 && !cfg!(target_os = "macos"))
-        {
-            // Tier 2: Cloud virtual machine, container, or server without bare-metal privileges
+        } else if hypervisor.is_virtualized() || caps.cgroup_cpu_quota_us.is_some() {
+            // Tier 2: Cloud virtual machine, container, or server with cgroup limits
             HardwareTier::Tier2CloudVirtualized
         } else {
-            // Tier 1: Mid-range computer, developer laptop, or low core count
+            // Tier 1: Mid-range computer, developer laptop, or workstation (< 16 cores, unprivileged)
             HardwareTier::Tier1MidRange
         };
 
