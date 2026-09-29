@@ -17,6 +17,8 @@
 
 pub mod kernel_bypass;
 pub mod simulator;
+pub mod sync;
+pub mod topology;
 
 pub use kernel_bypass::{
     BypassBackendKind, BypassConfig, BypassMetrics, DmaBufferPool, HwTimestampNs,
@@ -25,6 +27,14 @@ pub use kernel_bypass::{
 pub use simulator::{
     FastPrng, FeedBurstConfig, FeedEventKind, IsolatedConsumerQueue, MockExchangeFeedSimulator,
     PushResult, QueueMetrics, SaturationDropPolicy, SimulatedFeedEvent, SimulatedVenue,
+};
+pub use sync::{
+    AdaptiveBurstWaitStrategy, BusySpinStrategy, DynamicWaitStrategy, HybridAdaptiveStrategy,
+    PowerEfficientStrategy, WaitStrategy, WaitStrategyKind,
+};
+pub use topology::{
+    CpuTopology, EnvironmentCapabilities, HardwareProbe, HardwareTier, HypervisorKind,
+    MockHardwareProbe, RuntimeProfile, SystemHardwareProbe,
 };
 
 use std::cell::UnsafeCell;
@@ -125,6 +135,38 @@ impl<T: Copy + Default, const N: usize> SpscRingBuffer<T, N> {
             .0
             .store(current_tail + 1, Ordering::Release);
         Some(item)
+    }
+
+    /// Consumer: Dequeue item using an adaptive hardware wait strategy
+    #[inline(always)]
+    pub fn pop_blocking<S: WaitStrategy>(&self, strategy: &mut S) -> T {
+        loop {
+            if let Some(item) = self.try_pop() {
+                strategy.reset();
+                return item;
+            }
+            strategy.idle();
+        }
+    }
+
+    /// Consumer: Dequeue item with an adaptive wait strategy and explicit timeout
+    #[inline(always)]
+    pub fn pop_timeout<S: WaitStrategy>(
+        &self,
+        strategy: &mut S,
+        timeout: std::time::Duration,
+    ) -> Option<T> {
+        let deadline = std::time::Instant::now() + timeout;
+        loop {
+            if let Some(item) = self.try_pop() {
+                strategy.reset();
+                return Some(item);
+            }
+            if std::time::Instant::now() >= deadline {
+                return None;
+            }
+            strategy.idle();
+        }
     }
 }
 
@@ -324,6 +366,33 @@ mod tests {
         assert!(queue.try_push(42).is_ok());
         assert_eq!(queue.try_pop(), Some(42));
         assert_eq!(queue.try_pop(), None);
+    }
+
+    #[test]
+    fn test_spsc_ring_buffer_wait_strategies() {
+        let queue: SpscRingBuffer<u64, 1024> = SpscRingBuffer::new();
+
+        // 1. BusySpinStrategy pop_blocking
+        let mut busy = BusySpinStrategy::new();
+        assert!(queue.try_push(101).is_ok());
+        let val = queue.pop_blocking(&mut busy);
+        assert_eq!(val, 101);
+
+        // 2. HybridAdaptiveStrategy pop_blocking
+        let mut hybrid = HybridAdaptiveStrategy::new(2, 2, 5);
+        assert!(queue.try_push(202).is_ok());
+        let val2 = queue.pop_blocking(&mut hybrid);
+        assert_eq!(val2, 202);
+
+        // 3. DynamicWaitStrategy pop_timeout on empty queue
+        let mut dyn_power = DynamicWaitStrategy::for_tier(HardwareTier::Tier1MidRange);
+        let timeout_res = queue.pop_timeout(&mut dyn_power, std::time::Duration::from_millis(5));
+        assert_eq!(timeout_res, None);
+
+        // 4. pop_timeout on populated queue
+        assert!(queue.try_push(303).is_ok());
+        let timeout_hit = queue.pop_timeout(&mut dyn_power, std::time::Duration::from_millis(10));
+        assert_eq!(timeout_hit, Some(303));
     }
 
     #[test]
