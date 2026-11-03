@@ -40,3 +40,25 @@ jobs:
 
       - name: Verify benchmark compilation
         run: cargo check --workspace --benches
+
+  # Optional: talks to the real Coinbase Exchange public feed. Network-dependent, so it can
+  # never fail the build; the offline fixture tests above are the real gate.
+  live-connect:
+    name: Live feed smoke test (optional)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Connect for 20 seconds and require at least 20 messages
+        run: |
+          cargo run --release -p live-feed --bin live_feed -- \
+            --products BTC-USD,ETH-USD --seconds 20 --min-messages 20 | tee live-feed-output.txt
+      - name: Upload output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-feed-output
+          path: live-feed-output.txt

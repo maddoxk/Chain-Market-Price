@@ -1,0 +1,21 @@
+[package]
+name = "live-feed"
+version = "0.1.0"
+edition = "2021"
+description = "Opt-in live WebSocket ingest (Coinbase Exchange public feed) feeding the cefi-ingest parser. The only crate in the workspace with third-party dependencies."
+
+[dependencies]
+core-engine = { path = "../core-engine" }
+cefi-ingest = { path = "../cefi-ingest" }
+ingest-models = { path = "../ingest-models" }
+distribution = { path = "../distribution" }
+
+tokio = { version = "1", features = ["rt", "macros", "time", "signal", "net"] }
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+# tokio-tungstenite does not pick a rustls crypto backend for us; we install `ring` at startup.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+
+[[bin]]
+name = "live_feed"
+path = "src/bin/live_feed.rs"
