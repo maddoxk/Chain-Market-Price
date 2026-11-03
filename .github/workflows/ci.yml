@@ -62,3 +62,51 @@ jobs:
         with:
           name: live-feed-output
           path: live-feed-output.txt
+
+  # Records real numbers. Hosted runners are shared VMs, so treat results as indicative of
+  # the code, not of production hardware. Raw output is the source of truth for docs/results.
+  bench:
+    name: Benchmarks (ubuntu-latest, release)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Record environment
+        run: |
+          mkdir -p bench-out
+          {
+            echo "date_utc: $(date -u +%FT%TZ)"
+            echo "commit: ${GITHUB_SHA}"
+            echo "runner_image: ${ImageOS:-unknown} ${ImageVersion:-unknown}"
+            echo "rustc: $(rustc -V)"
+            echo "nproc: $(nproc)"
+            uname -a
+            lscpu | grep -E 'Model name|Thread|Core|Socket|MHz|L1d|L2|L3|Hypervisor|Virtualization' || true
+            free -m | head -2
+          } | tee bench-out/environment.txt
+      - name: Build benches
+        run: cargo bench -p distribution --no-run
+      - name: Run tick_to_egress (3 runs) and bench_dispatch
+        run: |
+          for i in 1 2 3; do
+            cargo bench -p distribution --bench tick_to_egress 2>&1 | tee bench-out/tick_to_egress_run$i.txt
+          done
+          cargo bench -p distribution --bench bench_dispatch 2>&1 | tee bench-out/bench_dispatch.txt
+      - name: Job summary
+        run: |
+          {
+            echo '### Benchmark results (ubuntu-latest, release build)'
+            echo '```'
+            cat bench-out/environment.txt
+            echo '```'
+            for f in bench-out/tick_to_egress_run*.txt bench-out/bench_dispatch.txt; do
+              echo "#### $f"; echo '```'; grep -v -E '^\s*(Compiling|Finished|Running|Downloaded)' "$f"; echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload raw output
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-output
+          path: bench-out/

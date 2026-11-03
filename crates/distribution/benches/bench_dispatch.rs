@@ -1,12 +1,6 @@
 #![allow(clippy::all)]
 
-#[inline(never)]
-fn black_box<T>(dummy: T) -> T {
-    let ret = unsafe { std::ptr::read_volatile(&dummy) };
-    std::mem::forget(dummy);
-    ret
-}
-
+use std::hint::black_box;
 use std::time::Instant;
 
 use distribution::{
@@ -17,9 +11,17 @@ use distribution::{
 use ingest_models::{NormalizedBbo, TelemetryTimestamps, UnifiedTrade};
 
 fn main() {
-    println!("===============================================================================");
-    println!("Institutional Distribution Engine - Nanosecond Performance Benchmarks");
-    println!("===============================================================================\n");
+    println!("distribution micro-benchmarks (single thread, in-process, constant inputs)");
+    println!("Constant inputs run with hot caches and perfectly predicted branches, so these are");
+    println!("best-case per-call costs, not latencies a client would observe.");
+    println!(
+        "Build profile: {}\n",
+        if cfg!(debug_assertions) {
+            "DEBUG (numbers not meaningful)"
+        } else {
+            "release"
+        }
+    );
 
     const ITERATIONS: usize = 1_000_000;
 
@@ -56,12 +58,6 @@ fn main() {
             nanos_per_op,
             1_000.0 / nanos_per_op
         );
-        let max_sla = if cfg!(debug_assertions) {
-            5_000.0
-        } else {
-            1_000.0
-        };
-        assert!(nanos_per_op < max_sla, "Target SLA exceeded");
     }
 
     // 2. SBE Trade Serialization Benchmark
@@ -91,12 +87,6 @@ fn main() {
             nanos_per_op,
             1_000.0 / nanos_per_op
         );
-        let max_sla = if cfg!(debug_assertions) {
-            5_000.0
-        } else {
-            1_000.0
-        };
-        assert!(nanos_per_op < max_sla, "Target SLA exceeded");
     }
 
     // 3. Fast Zero-Allocation JSON BBO Serialization Benchmark
@@ -132,12 +122,6 @@ fn main() {
             nanos_per_op,
             1_000.0 / nanos_per_op
         );
-        let max_sla = if cfg!(debug_assertions) {
-            5_000.0
-        } else {
-            1_000.0
-        };
-        assert!(nanos_per_op < max_sla, "Target SLA exceeded");
     }
 
     // 4. Fast Zero-Allocation JSON Trade Serialization Benchmark
@@ -167,12 +151,6 @@ fn main() {
             nanos_per_op,
             1_000.0 / nanos_per_op
         );
-        let max_sla = if cfg!(debug_assertions) {
-            5_000.0
-        } else {
-            1_000.0
-        };
-        assert!(nanos_per_op < max_sla, "Target SLA exceeded");
     }
 
     // 5. Inverted Topic Router Fan-Out Benchmark (100 concurrent clients)
@@ -215,11 +193,8 @@ fn main() {
         let nanos_per_client = nanos_per_dispatch / CLIENTS as f64;
 
         println!(
-            "  [5] Inverted Router Dispatch (100 clients): {:>6.2} ns/tick ({:.2} ns/client fanout)",
+            "  [5] Router dispatch, 100 clients, no-op sink: {:>6.2} ns/tick ({:.2} ns/client fanout)",
             nanos_per_dispatch, nanos_per_client
         );
     }
-
-    println!("\nAll operations confirmed SUB-MICROSECOND! Institutional HFT SLA achieved.");
-    println!("===============================================================================");
 }
