@@ -6,6 +6,7 @@ members = [
     "crates/cefi-ingest",
     "crates/amm-virtualizer",
     "crates/onchain-ingest",
+    "crates/live-feed",
 ]
 
 [profile.release]
