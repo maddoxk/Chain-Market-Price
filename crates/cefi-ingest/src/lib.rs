@@ -464,10 +464,25 @@ fn extract_json_bool_field(src: &[u8], key: &[u8]) -> Option<bool> {
     None
 }
 
+/// Finds `needle` in `haystack`. Checks the first and last byte of the needle before doing a
+/// full compare, which avoids a slice comparison at every offset. (The first benchmark run
+/// showed the naive `windows().position()` version dominating parse time: ~4.9 us per message.)
 fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    haystack
-        .windows(needle.len())
-        .position(|window| window == needle)
+    let n = needle.len();
+    if n == 0 || haystack.len() < n {
+        return None;
+    }
+    let first = needle[0];
+    let last = needle[n - 1];
+    let mut s = 0;
+    let end = haystack.len() - n;
+    while s <= end {
+        if haystack[s] == first && haystack[s + n - 1] == last && &haystack[s..s + n] == needle {
+            return Some(s);
+        }
+        s += 1;
+    }
+    None
 }
 
 #[cfg(test)]
@@ -497,6 +512,16 @@ mod tests {
         assert_eq!(bbo.bid_price, 2535190000);
         assert_eq!(bbo.ask_price, 2536520000);
         assert_eq!(bbo.sequence, 400900217);
+    }
+
+    #[test]
+    fn test_find_subsequence() {
+        assert_eq!(find_subsequence(b"abcabc", b"abc"), Some(0));
+        assert_eq!(find_subsequence(b"xxabc", b"abc"), Some(2));
+        assert_eq!(find_subsequence(b"ab", b"abc"), None);
+        assert_eq!(find_subsequence(b"abd abx", b"abc"), None);
+        assert_eq!(find_subsequence(b"abc", b""), None);
+        assert_eq!(find_subsequence(b"\"b\":\"1\"", b"\"b\":"), Some(0));
     }
 
     #[test]

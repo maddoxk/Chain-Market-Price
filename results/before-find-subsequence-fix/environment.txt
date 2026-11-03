@@ -1,0 +1,18 @@
+date_utc: 2026-11-03T14:44:52Z
+commit: 81bc61882141a6c9d14d54c45468a3ffc6170656
+runner_image: ubuntu26 20261026.180.1
+rustc: rustc 1.99.1 (58cf8f9c3 2026-10-13)
+nproc: 4
+Linux runnervmnwato 7.0.0-1017-azure #17-Ubuntu SMP PREEMPT Thu Sep 24 15:54:51 UTC 2026 x86_64 GNU/Linux
+Model name:                              AMD EPYC 7763 64-Core Processor
+Thread(s) per core:                      2
+Core(s) per socket:                      2
+Socket(s):                               1
+Virtualization:                          AMD-V
+Hypervisor vendor:                       Microsoft
+Virtualization type:                     full
+L1d cache:                               64 KiB (2 instances)
+L2 cache:                                1 MiB (2 instances)
+L3 cache:                                32 MiB (1 instance)
+               total        used        free      shared  buff/cache   available
+Mem:           15983         967       14383          45         959       15015

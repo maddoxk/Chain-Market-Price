@@ -1,0 +1,12 @@
+    Finished `bench` profile [optimized] target(s) in 0.01s
+     Running benches/bench_dispatch.rs (target/release/deps/bench_dispatch-03961ef9749c4def)
+distribution micro-benchmarks (single thread, in-process, constant inputs)
+Constant inputs run with hot caches and perfectly predicted branches, so these are
+best-case per-call costs, not latencies a client would observe.
+Build profile: release
+
+  [1] SBE BBO Encoding (92 bytes):        4.10 ns/op  (244.1M msgs/sec)
+  [2] SBE Trade Encoding (95 bytes):      6.03 ns/op  (166.0M msgs/sec)
+  [3] Fast JSON BBO Serialization:       86.30 ns/op  (11.6M msgs/sec)
+  [4] Fast JSON Trade Serialization:     53.71 ns/op  (18.6M msgs/sec)
+  [5] Router dispatch, 100 clients, no-op sink: 1741.97 ns/tick (17.42 ns/client fanout)

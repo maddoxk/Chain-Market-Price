@@ -1,0 +1,30 @@
+    Finished `bench` profile [optimized] target(s) in 0.01s
+     Running benches/tick_to_egress.rs (target/release/deps/tick_to_egress-fbf733a0bf79d6b3)
+tick_to_egress: in-process pipeline benchmark, build profile = release
+payload pool: 4096 messages, ~406 bytes each
+
+--- A. per-stage (Instant pair around each stage; includes timer overhead below) ---
+timer overhead (empty pair)        p50     30  p90     31  p99     31  p99.9      31  max    32411  (ns, n=200000)
+RESULT	timer_overhead_(empty_pair)	30	31	31	31	32411
+stage parse                        p50   4889  p90   5080  p99   6482  p99.9   23905  max   145593  (ns, n=200000)
+RESULT	stage_parse	4889	5080	6482	23905	145593
+stage ring#1 push+pop              p50     40  p90     40  p99     50  p99.9      70  max    17993  (ns, n=200000)
+RESULT	stage_ring#1_push+pop	40	40	50	70	17993
+stage book update                  p50     30  p90     40  p99     50  p99.9      60  max    63849  (ns, n=200000)
+RESULT	stage_book_update	30	40	50	60	63849
+stage ring#2 push+pop              p50     40  p90     41  p99     51  p99.9     271  max    82796  (ns, n=200000)
+RESULT	stage_ring#2_push+pop	40	41	51	271	82796
+stage dispatch (50 clients)        p50   1052  p90   1091  p99   1303  p99.9    9869  max   130695  (ns, n=200000)
+RESULT	stage_dispatch_(50_clients)	1052	1091	1303	9869	130695
+sum of stages                      p50   6043  p90   6262  p99   8546  p99.9   38973  max   147898  (ns, n=200000)
+RESULT	sum_of_stages	6043	6262	8546	38973	147898
+
+--- B. end-to-end (one Instant pair per iteration) ---
+end-to-end per message             p50   5941  p90   8025  p99  12864  p99.9   26540  max  2815718  (ns, n=200000)
+RESULT	end-to-end_per_message	5941	8025	12864	26540	2815718
+
+--- C. batch (2000000 iterations, one timer around the loop) ---
+batch mean: 5969.8 ns/message
+RESULT	batch_mean_ns_per_message	5969.8
+
+Scope: in-process, single thread, payload already in memory, no-op sink. Not a wire-to-wire latency.
