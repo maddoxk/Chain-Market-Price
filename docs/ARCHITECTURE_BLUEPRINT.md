@@ -1,8 +1,11 @@
-# Institutional Systems Architecture Blueprint
-## High-Performance CeFi & DeFi Market Data Engine (HRT / Citadel Caliber)
+# Architecture Blueprint (design target)
+## CeFi & DeFi market data engine
+
+> **Status: design target, not a description of what is built.** Latency figures, SLAs, hardware (Solarflare NIC,
+> PTP timestamps, kernel bypass), mempool streaming and cross-process shared memory below are goals. See the status
+> table in the README for what exists, and `docs/DESIGN.md` for how the working parts fit together.
 
 **Document Version:** 1.0.0  
-**Classification:** Enterprise Trading Infrastructure Specification  
 
 ---
 

@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Chain-Market-Price',
-  tagline: 'Institutional Ultra-Low Latency CeFi & DeFi Market Data Platform',
+  tagline: 'Experimental low-latency crypto market-data pipeline in Rust',
   favicon: 'img/favicon.ico',
 
   // Production URL and GitHub Pages deployment configuration
@@ -156,7 +156,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Chain-Market-Price Platform. Released under Apache-2.0 / MIT. Institutional-Grade HFT Engineering.`,
+      copyright: `Chain-Market-Price. Experimental portfolio project.`,
     },
     prism: {
       theme: prismThemes.github,

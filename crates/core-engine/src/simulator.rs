@@ -1,6 +1,6 @@
 //! # High-Throughput Mock Exchange Feed Simulator & Stress Test Harness
 //!
-//! Subsystem for generating institutional-grade market data feeds at micro-burst rates
+//! Subsystem for generating synthetic market data feeds at micro-burst rates
 //! (100k – 500k+ messages/sec) with realistic price action, nanosecond jitter injection,
 //! and slow consumer backpressure isolation via configurable queue saturation drop policies.
 //!

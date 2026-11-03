@@ -1,6 +1,7 @@
 /**
  * @file strategy_consumer.cpp
- * @brief Institutional C++23 Low-Latency Quant Strategy Consumer Example
+ * @brief C++23 shared-memory consumer sketch
+ * STATUS: untested against a real writer; the Rust engine does not yet write ring data into the mapped file.
  *
  * Demonstrates:
  * 1. Attaching to the Chain-Market-Price shared memory ring (/dev/shm/cmp_market_data.shm).

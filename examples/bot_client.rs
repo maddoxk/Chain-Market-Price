@@ -1,10 +1,13 @@
-//! # Production Quant Arbitrage Bot Client Example
+//! # Bot client example (OFFLINE DEMO)
+//!
+//! STATUS: does not connect to anything. The distribution crate has a WebSocket frame codec but no network
+//! listener; this example decodes a locally constructed SBE buffer and prints canned output.
 //!
 //! Demonstrates:
 //! 1. Connecting to the Chain-Market-Price high-performance WebSocket engine.
 //! 2. Negotiating zero-copy Simple Binary Encoding (SBE) binary frames.
 //! 3. Subscribing to cross-venue markets (e.g. Binance Spot vs. Uniswap v3 / Raydium CLMM).
-//! 4. Decoding SBE frames in ~15 nanoseconds without memory allocations.
+//! 4. Decoding SBE frames without memory allocations.
 //! 5. Inspecting 4-point telemetry timestamps ($T_0, T_1, T_2, T_3$) to compute latency alpha.
 //! 6. Detecting cross-venue arbitrage spreads.
 
@@ -18,7 +21,7 @@ fn main() {
     println!("  CHAIN-MARKET-PRICE: QUANT ARBITRAGE BOT CLIENT REFERENCE  ");
     println!("============================================================");
     println!();
-    println!("Connecting to gateway at ws://127.0.0.1:9001/v1/marketdata ...");
+    println!("[offline demo] would connect to ws://127.0.0.1:9001/v1/marketdata ...");
     println!("Negotiated Protocol: Simple Binary Encoding (SBE, Little-Endian)");
     println!("Active Filters: Min Notional USD: $10,000 | Max Spread: 35 bps");
     println!();

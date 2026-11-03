@@ -7,26 +7,31 @@ slug: /intro
 
 # Chain-Market-Price
 
-## Institutional Ultra-Low Latency CeFi & DeFi Market Data Engine
+## Experimental low-latency market-data pipeline
 
-**Chain-Market-Price** is an ultra-high performance cryptocurrency market data aggregation, normalization, and distribution platform built in pure Rust. Engineered for high-frequency trading (HFT) desks, quantitative hedge funds, and statistical arbitrageurs, the engine unifies top-tier centralized exchanges (Binance, OKX, Bybit) and decentralized automated market makers (Uniswap v2, v3, v4, Curve, Raydium) into a single, nanosecond-benchmarked order book feed.
+**Chain-Market-Price** is a Rust workspace that parses exchange messages, normalizes them to fixed-point structs, updates a
+price ladder, encodes to SBE or JSON, and fans out to subscribers. A separate crate connects to the real Coinbase
+Exchange public feed. It is a portfolio project: see the README status table for what is real, simulated or design-only.
 
 ---
 
-## Key Performance Characteristics
+## Measured numbers
 
-| Metric | Measured Specification | Architectural Mechanism |
+| Metric | Value | Environment |
 | :--- | :--- | :--- |
-| **Colocated IPC Latency** | **< 75 nanoseconds** | Zero-copy POSIX Shared Memory (`/dev/shm`) circular ring |
-| **Median Tick-to-Egress ($T_3 - T_1$)** | **~2.16 microseconds** | Lock-free LMAX Disruptor SPSC queues + SIMD parsing |
-| **99th Percentile Jitter (P99)** | **< 4.80 microseconds** | Strict CPU core isolation (`isolcpus`), tickless kernel |
-| **Dynamic Memory Allocations** | **0 bytes** | Pre-allocated static cache-aligned flat arrays |
-| **Cache Line False Sharing** | **0%** | Strict 64-byte alignment (`#[repr(align(64))]`) |
-| **Throughput Capacity** | **> 500,000 msgs/sec** | Branchless bitmask filtering & vectorized unmasking |
+| In-process pipeline, one message (parse, 2 SPSC hand-offs, ladder, dispatch to 50 clients) | about 1.83 µs median, 1.9 to 2.3 µs p99 | GitHub Actions ubuntu-latest, shared 4 vCPU VM, release build |
+| Live feed, 20 s, BTC-USD + ETH-USD | 174 messages, 0 gaps | same runner, public Coinbase feed |
+
+Nothing here measures NIC, kernel, TLS or cross-core latency. See [Latency Benchmarks](benchmarks/tick-to-egress).
+Earlier versions of this page listed sub-75 ns shared-memory IPC, a 2.16 µs wire-to-egress median and a 4.80 µs p99;
+those were not backed by recorded output and were removed.
 
 ---
 
-## System Architecture
+## Target architecture (partly implemented)
+
+The diagram below is the design target. Kernel bypass, PTP timestamps, cross-process shared memory, a network-facing
+WebSocket server and mempool ingestion are not implemented; see the README status table.
 
 The engine executes in a pipelined, multi-stage lock-free architecture where each critical execution stage is pinned to dedicated, isolated physical CPU cores on NUMA Node 0:
 

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
-Institutional High-Frequency Python Client Reference for Chain-Market-Price
+Python client sketch for Chain-Market-Price shared-memory ring
+
+STATUS: untested against a real writer. The Rust engine does not yet place ring data in the
+/dev/shm file (the ring is heap-backed), so this reader would see zeros today.
 
 Demonstrates:
 1. Zero-copy memory-mapped access to `/dev/shm/cmp_market_data.shm`.
