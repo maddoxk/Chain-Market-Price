@@ -53,8 +53,8 @@ Reading the table:
   about 100 ns in total. The end-to-end and batch numbers agree (about 1.83 µs per message), which is the best single figure.
 - Roughly 75 percent of the time is `dispatch_bbo`: two `RwLock` reads, hash-map lookups, and per-client
   session checks, token-bucket consumption and callback, for 50 clients. The parse is about 26 percent.
-- The p99.9 and max are dominated by scheduler and hypervisor noise on a shared VM. A maximum of several hundred
-  microseconds appeared in one run. These numbers say nothing about tail latency on dedicated, isolated cores.
+- The p99.9 and max are dominated by scheduler and hypervisor noise on a shared VM. Single messages took up to about 200 µs in the
+  worst run (2.8 ms in the pre-fix run). These numbers say nothing about tail latency on dedicated, isolated cores.
 - Different runner VMs differ. An earlier run on a different host CPU (AMD EPYC 7763) gave the same dispatch cost within
   about 30 percent. Treat results as indicative of the code, not as hardware-independent constants.
 
