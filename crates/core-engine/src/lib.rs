@@ -1,9 +1,9 @@
 //! # Core Low-Latency Engine
 //!
-//! Enterprise market data primitives implemented with mechanical sympathy:
+//! Market-data primitives written with cache behaviour in mind:
 //! - Lock-free Single-Producer Single-Consumer (SPSC) ring buffer with 64-byte cache padding.
 //! - Contiguous L1d-resident flat array order book price ladder.
-//! - Ultra-fast zero-allocation fixed-point scaler.
+//! - Zero-allocation fixed-point scaler.
 //! - Vectorized WebSocket unmasking routine.
 
 #![allow(

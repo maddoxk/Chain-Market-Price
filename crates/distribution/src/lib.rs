@@ -1,6 +1,6 @@
 //! # Distribution & Fan-Out Egress Layer
 //!
-//! Institutional High-Frequency Trading client distribution layer providing:
+//! Client distribution layer (in-process; no network listener) providing:
 //! - 64-bit Topic Key packing for branchless subscription multiplexing.
 //! - Cache-aligned Roaring-style Inverted Client Bitmap indexing (`ClientBitmap`).
 //! - Lock-free token bucket rate limiting using single-word 64-bit CAS (`LockFreeTokenBucket`).

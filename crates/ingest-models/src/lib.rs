@@ -9,7 +9,7 @@
 pub struct TelemetryTimestamps {
     /// T0: Venue matching engine timestamp or on-chain block/mempool arrival
     pub t0_exchange_ns: u64,
-    /// T1: Solarflare NIC packet reception hardware timestamp (IEEE 1588 PTP)
+    /// T1: local ingest timestamp. Live feed: wall-clock time at user-space receive. Not a NIC/PTP timestamp today.
     pub t1_ingest_nic_ns: u64,
     /// T2: Core normalization & book update completion timestamp
     pub t2_engine_proc_ns: u64,

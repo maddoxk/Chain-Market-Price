@@ -1,9 +1,9 @@
 //! # Modular Network Transport Layer
 //!
-//! Provides a zero-cost polymorphic network ingress abstraction:
-//! - **Tier 3 (Enterprise Bare Metal):** `SolarflareEfViTransport` with zero-syscall userspace MMIO and DMA.
-//! - **Tier 2 (Cloud Virtualized):** `IoUringTransport` with batched SQ/CQ rings and fixed buffer pools.
-//! - **Tier 1 (Mid-Range Workstation):** `StandardSocketTransport` with non-blocking BSD UDP sockets and `SO_BUSY_POLL`.
+//! A polymorphic network ingress abstraction. STATUS: only `StandardSocketTransport` talks to a real socket.
+//! - **Tier 3:** `SolarflareEfViTransport`. SIMULATED: wraps an in-memory ring (`inject_packet`); no ef_vi/DPDK.
+//! - **Tier 2:** `IoUringTransport`. Uses a plain `UdpSocket` plus an in-memory completion queue; no io_uring syscalls.
+//! - **Tier 1:** `StandardSocketTransport` with non-blocking UDP sockets.
 //! - **Deterministic Simulation:** `MockNetworkTransport` for high-speed deterministic unit testing and playback.
 
 pub mod io_uring;

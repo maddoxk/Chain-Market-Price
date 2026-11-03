@@ -15,15 +15,15 @@ function HomepageHeader() {
       <div className="container text--center">
         <div style={{marginBottom: '1rem'}}>
           <span className="badge badge--primary" style={{fontSize: '0.85rem', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0.35rem 0.75rem'}}>
-            Production-Grade HFT Infrastructure
+            Experimental Rust Project
           </span>
         </div>
         <Heading as="h1" className="hero__title" style={{fontSize: '3.2rem', fontWeight: 800, color: '#f9fafb'}}>
           {siteConfig.title}
         </Heading>
         <p className="hero__subtitle" style={{maxWidth: '850px', margin: '1rem auto 2.5rem', color: '#9ca3af', fontSize: '1.25rem', lineHeight: '1.6'}}>
-          Institutional ultra-low latency cryptocurrency market data feed platform in pure Rust.
-          Sub-microsecond tick normalization, virtual AMM order book reconstruction, and sub-75ns shared memory IPC fan-out.
+          A low-latency crypto market-data pipeline in Rust: parse, normalize, price ladder, SBE/JSON encode, topic fan-out,
+          and a live Coinbase feed. About 1.8 µs per message in-process on a CI VM; see the README for what is real and what is simulated.
         </p>
         <div style={{display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap'}}>
           <Link
@@ -107,8 +107,8 @@ export default function Home(): ReactNode {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title={`${siteConfig.title} | Institutional HFT Market Data`}
-      description="Chain-Market-Price: Ultra-low latency institutional cryptocurrency market data feed platform in pure Rust. Sub-microsecond tick normalization, virtual AMM order book reconstruction, and sub-75ns shared memory IPC.">
+      title={`${siteConfig.title} | Rust market-data pipeline`}
+      description="Chain-Market-Price: an experimental low-latency crypto market-data pipeline in Rust with a live Coinbase feed.">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

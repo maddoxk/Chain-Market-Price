@@ -1,6 +1,9 @@
 //! # On-Chain Multi-Chain Ingestion & Speculative Mempool Sandbox
 //!
-//! Provides ultra-low-latency on-chain data ingestion and pending transaction analysis:
+//! STATUS: no network code. Only the in-process speculative swap calculation exists; the Solana/EVM streams
+//! listed below are the design target, not implemented.
+//!
+//! Intended scope:
 //! - **Solana Yellowstone Geyser & Jito ShredStream**: Sub-slot account deltas and TPU shred extraction.
 //! - **EVM Reth IPC & P2P Mempool**: Unconfirmed transaction sniffing and pending state diff analysis.
 //! - **Speculative Swap Sandbox**: Predicts DEX pool price impacts 200–400ms before block inclusion.

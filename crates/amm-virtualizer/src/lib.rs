@@ -6,7 +6,7 @@
 //! - **Uniswap v3 / v4**: Concentrated liquidity active tick arrays and bitmask scanning.
 //! - **Raydium CLMM & Orca Whirlpools**: Solana discrete price bins and liquidity ladders.
 //!
-//! Outputs directly into `core_engine::ContiguousOrderBook` for sub-nanosecond lookups.
+//! Outputs price ladders suitable for `core_engine::ContiguousOrderBook`. Offline math only.
 
 #![allow(clippy::all)]
 

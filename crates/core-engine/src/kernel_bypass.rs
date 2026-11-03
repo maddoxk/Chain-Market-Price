@@ -1,4 +1,9 @@
-//! # Solarflare EF_VI & DPDK Kernel-Bypass C FFI Ingestion Bridge
+//! # Kernel-bypass bridge (SIMULATION)
+//!
+//! STATUS: there is no ef_vi, DPDK or any C FFI in this module. `KernelBypassBridge` is an in-memory descriptor ring
+//! that tests and the POSIX fallback fill with `inject_packet`. It models the shape of a NIC RX ring (descriptors,
+//! buffer pool, burst polling); it does not touch hardware and no hardware timestamps are produced.
+//! The text below describes the intended design.
 //!
 //! Subsystem for hardware-accelerated, zero-syscall packet ingestion directly from
 //! network interface cards (NICs):

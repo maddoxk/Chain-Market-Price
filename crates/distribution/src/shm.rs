@@ -1,10 +1,14 @@
-//! # Production POSIX Shared Memory (SHM) IPC Engine
+//! # Shared-memory ring (single-writer multi-reader protocol)
+//!
+//! STATUS: the ring (header + slots) is a heap allocation owned by this process. A file under `/dev/shm` is created
+//! and sized but never mapped, so other processes cannot read the ring yet. The latency figures below were design
+//! goals, not measurements.
 //!
 //! Ultra-low-latency Single-Writer Multi-Reader (SWMR) shared memory circular ring
 //! designed for same-box inter-process communication with quantitative alpha models:
 //!
 //! Mechanical Sympathy Guarantees:
-//! - Sub-75ns median tick propagation latency across local processes.
+//! - Goal: very low tick propagation latency between local processes (not measured; not cross-process today).
 //! - Zero memory allocations in steady-state publish and read loops.
 //! - Strict 64-byte cache line alignment eliminating false sharing.
 //! - Lock-free optimistic concurrency with Acquire-Release memory barriers.

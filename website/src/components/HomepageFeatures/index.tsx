@@ -11,32 +11,32 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Sub-75ns Shared Memory IPC',
-    badge: '< 75 ns Read Latency',
+    title: 'Live Coinbase Feed',
+    badge: 'Real, public, no key',
     description: (
       <>
-        Zero-copy POSIX shared memory ring buffer at <code>/dev/shm</code> for colocated HFT bots.
-        Features modern C++23 (<code>_mm_pause</code>) and Python 3.11 memory-mapped struct unpackers.
+        Opt-in crate that connects to the Coinbase Exchange WebSocket, with heartbeat watchdog,
+        sequence and trade-id gap detection, resubscribe and reconnect with backoff. Tested offline on a recorded capture.
       </>
     ),
   },
   {
-    title: 'Unified CeFi & DeFi Engine',
-    badge: 'Tick Normalization',
+    title: 'Measured In-Process Pipeline',
+    badge: '~1.8 µs per message (CI VM)',
     description: (
       <>
-        Simultaneously normalizes centralized exchange book tickers (Binance, OKX, Bybit) and
-        virtualizes AMM curves (Uniswap v2, v3, v4, and Curve Stableswap with 256-bit math) into a single L2 ladder.
+        Parse, SPSC hand-offs, price ladder and fan-out to 50 clients on one thread, measured on a GitHub Actions runner.
+        Not a wire-to-wire latency; raw output is committed under <code>results/</code>.
       </>
     ),
   },
   {
-    title: 'Mechanical Sympathy & Zero Alloc',
-    badge: '0 Bytes Heap Hot Path',
+    title: 'Honest Status',
+    badge: 'Real vs simulated',
     description: (
       <>
-        Strict 64-byte cache alignment (<code>alignas(64)</code>), lock-free LMAX Disruptor SPSC queues,
-        and branchless bitmap topic routing ensure deterministic ~2.16µs wire egress latency.
+        Shared memory, kernel bypass and on-chain ingestion are simulated or design-only today.
+        The README status table says which is which.
       </>
     ),
   },
